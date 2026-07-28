@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Векторных Иконок Файлов</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Material Symbols Outlined (for UI only) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700;800;900&family=Fira+Code:wght@600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Material Symbols helper class for UI buttons */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+
+        /* Checkerboard pattern for canvas transparent preview */
+        .checkerboard {
+            background-color: #1e293b;
+            background-image: 
+                linear-gradient(45deg, #0f172a 25%, transparent 25%), 
+                linear-gradient(-45deg, #0f172a 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #0f172a 75%), 
+                linear-gradient(-45deg, transparent 75%, #0f172a 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-4 py-3.5">
+        <div class="max-w-[1600px] mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-file-vector text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-100 text-lg leading-tight">Генератор Векторных Иконок Файлов</h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Создавайте качественные векторные значки файлов и документов</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main 3-Column Layout -->
+    <main class="max-w-[1600px] mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 my-auto">
+        
+        <!-- COLUMN 1: Presets & Base Shape / Colors (Left Column) -->
+        <div class="lg:col-span-4 space-y-5">
+            
+            <!-- Preset Palette Selector -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Готовые пресеты
+                </div>
+                <div class="grid grid-cols-3 sm:grid-cols-3 gap-2">
+                    <button onclick="applyPreset('vcf')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 flex flex-col items-center gap-1.5 transition group">
+                        <div class="w-6 h-8 bg-[#50D2FE] rounded-sm relative overflow-hidden shadow">
+                            <div class="absolute top-0 right-0 w-2.5 h-2.5 bg-[#236FE0]"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 group-hover:text-cyan-400">VCF</span>
+                    </button>
+                    <button onclick="applyPreset('html')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 flex flex-col items-center gap-1.5 transition group">
+                        <div class="w-6 h-8 bg-[#34D399] rounded-sm relative overflow-hidden shadow">
+                            <div class="absolute top-0 right-0 w-2.5 h-2.5 bg-[#047857]"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 group-hover:text-emerald-400">HTML</span>
+                    </button>
+                    <button onclick="applyPreset('exe')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 flex flex-col items-center gap-1.5 transition group">
+                        <div class="w-6 h-8 bg-[#F472B6] rounded-sm relative overflow-hidden shadow">
+                            <div class="absolute top-0 right-0 w-2.5 h-2.5 bg-[#E11D48]"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 group-hover:text-rose-400">EXE</span>
+                    </button>
+                    <button onclick="applyPreset('image')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 flex flex-col items-center gap-1.5 transition group">
+                        <div class="w-6 h-8 bg-[#38BDF8] rounded-sm relative overflow-hidden shadow flex items-center justify-center">
+                            <div class="absolute top-0 right-0 w-2.5 h-2.5 bg-[#0284C7]"></div>
+                            <i class="fa-solid fa-image text-[9px] text-white"></i>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 group-hover:text-sky-400">Медиа</span>
+                    </button>
+                    <button onclick="applyPreset('pdf')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 flex flex-col items-center gap-1.5 transition group">
+                        <div class="w-6 h-8 bg-[#EF4444] rounded-sm relative overflow-hidden shadow">
+                            <div class="absolute top-0 right-0 w-2.5 h-2.5 bg-[#991B1B]"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 group-hover:text-red-400">PDF</span>
+                    </button>
+                    <button onclick="applyPreset('blank')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 flex flex-col items-center gap-1.5 transition group">
+                        <div class="w-6 h-8 bg-[#50D2FE] rounded-sm relative overflow-hidden shadow border border-cyan-400/30">
+                            <div class="absolute top-0 right-0 w-2.5 h-2.5 bg-[#236FE0]"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 group-hover:text-slate-100">Пустой</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Base Shape & Colors Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-palette text-cyan-400"></i> Цвет и форма файла
+                </h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Main Background Color -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs text-slate-300 font-medium">Основной цвет фона</label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" id="bgColor" value="#50D2FE" class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 cursor-pointer p-1">
+                            <input type="text" id="bgColorHex" value="#50D2FE" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 uppercase focus:outline-none focus:border-cyan-500">
+                        </div>
+                    </div>
+
+                    <!-- Fold Color -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs text-slate-300 font-medium">Цвет уголка (угла)</label>
+                            <label class="inline-flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" id="autoFoldColor" checked class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0 text-xs">
+                                <span class="text-[10px] text-slate-400">Авто</span>
+                            </label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="color" id="foldColor" value="#236FE0" class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 cursor-pointer p-1">
+                            <input type="text" id="foldColorHex" value="#236FE0" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 uppercase focus:outline-none focus:border-cyan-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Corner Radius & Fold Size Sliders -->
+                <div class="space-y-3 pt-2 border-t border-slate-800/80">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Скругление углов</span>
+                            <span id="cornerRadiusVal" class="font-mono text-cyan-400">24px</span>
+                        </div>
+                        <input type="range" id="cornerRadius" min="0" max="60" value="24" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Размер среза уголка</span>
+                            <span id="foldSizeVal" class="font-mono text-cyan-400">60px</span>
+                        </div>
+                        <input type="range" id="foldSize" min="20" max="100" value="60" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- COLUMN 2: Preview & Export Options (Middle Column) -->
+        <div class="lg:col-span-4 space-y-5 flex flex-col justify-between">
+            
+            <!-- Live Preview Box -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center justify-center flex-1 min-h-[380px]">
+                <div class="w-full flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye text-cyan-400"></i> Предпросмотр
+                    </span>
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">
+                        SVG Vector Output
+                    </span>
+                </div>
+
+                <!-- Canvas Preview Container -->
+                <div class="relative w-64 h-80 checkerboard rounded-2xl border border-slate-700/60 p-4 flex items-center justify-center shadow-2xl overflow-hidden group">
+                    <div id="svgWrapper" class="w-full h-full flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                        <!-- SVG dynamically rendered here -->
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-500 mt-4 text-center">
+                    Векторная графика рендерится на лету. Все изменения применяются мгновенно.
+                </p>
+            </div>
+
+            <!-- Export Options Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-download text-cyan-400"></i> Экспорт и скачивание
+                </h2>
+
+                <!-- Resolution Selection for PNG -->
+                <div>
+                    <label class="block text-xs text-slate-300 font-medium mb-2">Разрешение для экспорта PNG:</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="setPngExportSize(128, this)" class="size-btn px-2 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-mono transition">
+                            128x128
+                        </button>
+                        <button onclick="setPngExportSize(256, this)" class="size-btn px-2 py-1.5 rounded-xl border border-cyan-500 bg-cyan-600/30 text-xs text-cyan-300 font-mono transition">
+                            256x256
+                        </button>
+                        <button onclick="setPngExportSize(512, this)" class="size-btn px-2 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-mono transition">
+                            512x512
+                        </button>
+                        <button onclick="setPngExportSize(1024, this)" class="size-btn px-2 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-mono transition">
+                            1024x1024
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="space-y-2 pt-1">
+                    <button id="downloadPngBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition active:scale-[0.99]">
+                        <i class="fa-solid fa-file-image"></i>
+                        <span id="downloadPngBtnText">Скачать PNG (256x256)</span>
+                    </button>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="downloadSvgBtn" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-file-code text-cyan-400"></i> Скачать SVG
+                        </button>
+                        <button id="copySvgBtn" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-copy text-emerald-400"></i> Копия SVG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- COLUMN 3: Text Controls & Overlay Image Controls (Right Column) -->
+        <div class="lg:col-span-4 space-y-5">
+            
+            <!-- Text Settings Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-font text-cyan-400"></i> Надпись / Текст на файле
+                </h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Text Content -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs text-slate-300 font-medium">Текст надписи</label>
+                        <input type="text" id="iconText" value="VCF" placeholder="например: VCF, HTML, DOC" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-100 focus:outline-none focus:border-cyan-500">
+                    </div>
+
+                    <!-- Text Color -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs text-slate-300 font-medium">Цвет текста</label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" id="textColor" value="#236FE0" class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 cursor-pointer p-1">
+                            <input type="text" id="textColorHex" value="#236FE0" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 uppercase focus:outline-none focus:border-cyan-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Font Family & Font Size -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-xs text-slate-300 font-medium">Шрифт</label>
+                        <select id="textFont" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                            <option value="Montserrat">Montserrat (Жирный)</option>
+                            <option value="Inter">Inter (Чистый)</option>
+                            <option value="'Fira Code'">Fira Code (Моно)</option>
+                            <option value="Arial">Arial</option>
+                            <option value="Impact">Impact (Массивный)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Размер текста</span>
+                            <span id="textSizeVal" class="font-mono text-cyan-400">64px</span>
+                        </div>
+                        <input type="range" id="textSize" min="20" max="120" value="64" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                </div>
+
+                <!-- Text Offset Controls -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Смещение текста X</span>
+                            <span id="textOffsetXVal" class="font-mono text-cyan-400">0</span>
+                        </div>
+                        <input type="range" id="textOffsetX" min="-80" max="80" value="0" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Смещение текста Y</span>
+                            <span id="textOffsetYVal" class="font-mono text-cyan-400">15</span>
+                        </div>
+                        <input type="range" id="textOffsetY" min="-100" max="100" value="15" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image / Vector Overlay Controls -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-cyan-400"></i> Наложение Картинки / Иконки
+                </h2>
+
+                <!-- Predefined Material Symbols Overlay Quick Buttons -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="block text-xs text-slate-300 font-medium">Быстрый векторный значок</label>
+                        <button onclick="setPresetOverlay('none')" class="text-[11px] text-slate-400 hover:text-rose-400 transition" title="Убрать значок">
+                            <i class="fa-solid fa-ban mr-1"></i>Сбросить
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2">
+                        <!-- Button 1: Catalog Modal Trigger -->
+                        <button onclick="openIconModal()" class="p-2 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white flex flex-col items-center justify-center gap-0.5 border border-cyan-400/30 transition shadow-lg shadow-cyan-900/30 group" title="Открыть полный каталог Material Symbols">
+                            <span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">apps</span>
+                            <span class="text-[9px] font-bold leading-none">Каталог</span>
+                        </button>
+                        <!-- Button 2: Example Image -->
+                        <button onclick="setMaterialOverlay('image')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-cyan-500 flex flex-col items-center justify-center gap-0.5 transition text-cyan-400 group" title="Material Icon: image">
+                            <span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">image</span>
+                            <span class="text-[9px] text-slate-400 leading-none">Фото</span>
+                        </button>
+                        <!-- Button 3: Example Code -->
+                        <button onclick="setMaterialOverlay('code')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-emerald-500 flex flex-col items-center justify-center gap-0.5 transition text-emerald-400 group" title="Material Icon: code">
+                            <span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">code</span>
+                            <span class="text-[9px] text-slate-400 leading-none">Код</span>
+                        </button>
+                        <!-- Button 4: Example Music -->
+                        <button onclick="setMaterialOverlay('music_note')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-pink-500 flex flex-col items-center justify-center gap-0.5 transition text-pink-400 group" title="Material Icon: music_note">
+                            <span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">music_note</span>
+                            <span class="text-[9px] text-slate-400 leading-none">Аудио</span>
+                        </button>
+                        <!-- Button 5: Example Settings -->
+                        <button onclick="setMaterialOverlay('settings')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-amber-500 flex flex-col items-center justify-center gap-0.5 transition text-amber-400 group" title="Material Icon: settings">
+                            <span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">settings</span>
+                            <span class="text-[9px] text-slate-400 leading-none">Опции</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PNG File Upload -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs text-slate-300 font-medium">Загрузить свою PNG картинку</label>
+                    <div class="flex items-center gap-2">
+                        <label class="flex-1 bg-slate-800 hover:bg-slate-700 border border-dashed border-slate-600 hover:border-cyan-500 rounded-xl px-4 py-2.5 text-xs text-slate-300 cursor-pointer flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-cloud-arrow-up text-cyan-400 text-sm"></i>
+                            <span id="uploadLabelText" class="truncate">Выберите PNG файл...</span>
+                            <input type="file" id="imageUpload" accept="image/png,image/svg+xml,image/jpeg" class="hidden">
+                        </label>
+                        <button id="clearImageBtn" class="hidden px-3 py-2.5 rounded-xl bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30 text-xs transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Overlay Scaling & Offset -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800/80">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Масштаб</span>
+                            <span id="imgScaleVal" class="font-mono text-cyan-400">100%</span>
+                        </div>
+                        <input type="range" id="imgScale" min="20" max="200" value="100" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Смещение X</span>
+                            <span id="imgOffsetXVal" class="font-mono text-cyan-400">0</span>
+                        </div>
+                        <input type="range" id="imgOffsetX" min="-80" max="80" value="0" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Смещение Y</span>
+                            <span id="imgOffsetYVal" class="font-mono text-cyan-400">10</span>
+                        </div>
+                        <input type="range" id="imgOffsetY" min="-100" max="100" value="10" class="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Material Symbols Selection Modal -->
+    <div id="iconModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="iconModalContainer">
+            
+            <!-- Modal Header -->
+            <div class="p-4 md:p-5 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-cyan-400 text-2xl">apps</span>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-100">Каталог Material Symbols</h3>
+                        <p class="text-xs text-slate-400">Выберите векторный значок для наложения на иконку</p>
+                    </div>
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative flex-1 max-w-xs">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"></i>
+                    <input type="text" id="iconSearchInput" placeholder="Поиск значка..." class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                </div>
+
+                <!-- Close Button -->
+                <button onclick="closeIconModal()" class="self-end sm:self-center w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Layout: Grid + Sidebar -->
+            <div class="flex-1 grid grid-cols-1 md:grid-cols-4 overflow-hidden min-h-[380px]">
+                
+                <!-- Main Icons Grid (3 Columns on MD) -->
+                <div class="md:col-span-3 p-4 overflow-y-auto max-h-[calc(85vh-130px)]">
+                    <div id="materialIconsGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                        <!-- Dynamically populated icons -->
+                    </div>
+                    <div id="noIconsFound" class="hidden py-12 text-center text-slate-500 text-xs">
+                        <i class="fa-solid fa-face-frown text-2xl mb-2 block"></i>
+                        Иконки не найдены. Попробуйте изменить запрос.
+                    </div>
+                </div>
+
+                <!-- Right Sidebar: Categories -->
+                <div class="border-t md:border-t-0 md:border-l border-slate-800 bg-slate-900/50 p-3 overflow-y-auto max-h-[calc(85vh-130px)] space-y-1">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">Категории</div>
+                    <div id="categoriesList" class="space-y-1">
+                        <!-- Category Buttons dynamically rendered -->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Hidden Canvas for Rasterizing PNG Exports -->
+    <canvas id="exportCanvas" class="hidden"></canvas>
+
+    <!-- Toast notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-cyan-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-sm font-medium transition-all duration-300 opacity-0 translate-y-10 pointer-events-none z-50">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg">Успешно!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-3 text-center text-xs text-slate-500">
+        Генератор Векторных Иконок • SVG Vector Graphics & Customizer
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // State store
+        const state = {
+            bgColor: '#50D2FE',
+            foldColor: '#236FE0',
+            autoFoldColor: true,
+            cornerRadius: 24,
+            foldSize: 60,
+            
+            // Text properties
+            text: 'VCF',
+            textColor: '#236FE0',
+            textFont: 'Montserrat',
+            textSize: 64,
+            textOffsetX: 0,
+            textOffsetY: 15,
+
+            // Overlay properties
+            overlayType: 'none', // 'none', 'material', 'custom'
+            materialIcon: 'image',
+            materialIconSvg: null, // Stores dynamically fetched pure SVG path
+            customImgSrc: null,
+            imgScale: 100,
+            imgOffsetX: 0,
+            imgOffsetY: 10,
+
+            // Export settings
+            pngExportSize: 256
+        };
+
+        // Cache for dynamically downloaded SVG icons
+        const svgIconCache = {};
+
+        // Material Symbols Catalog Database
+        const materialCatalog = [
+            // Files & Documents
+            { name: 'description', label: 'Документ', category: 'file' },
+            { name: 'folder', label: 'Папка', category: 'file' },
+            { name: 'draft', label: 'Черновик', category: 'file' },
+            { name: 'file_present', label: 'Вложение', category: 'file' },
+            { name: 'article', label: 'Статья', category: 'file' },
+            { name: 'task', label: 'Задача', category: 'file' },
+            { name: 'inventory', label: 'Архив', category: 'file' },
+            { name: 'cloud_upload', label: 'Облако', category: 'file' },
+            { name: 'receipt_long', label: 'Чек/Отчет', category: 'file' },
+            { name: 'table_chart', label: 'Таблица', category: 'file' },
+            { name: 'contract', label: 'Договор', category: 'file' },
+
+            // Media & Photos
+            { name: 'image', label: 'Картинка', category: 'media' },
+            { name: 'photo_camera', label: 'Камера', category: 'media' },
+            { name: 'movie', label: 'Видео', category: 'media' },
+            { name: 'music_note', label: 'Музыка', category: 'media' },
+            { name: 'mic', label: 'Микрофон', category: 'media' },
+            { name: 'headsets', label: 'Наушники', category: 'media' },
+            { name: 'palette', label: 'Палитра', category: 'media' },
+            { name: 'play_circle', label: 'Плеер', category: 'media' },
+            { name: 'videocam', label: 'Камера', category: 'media' },
+            { name: 'equalizer', label: 'Эквалайзер', category: 'media' },
+            { name: 'brush', label: 'Кисть', category: 'media' },
+
+            // Code & Development
+            { name: 'code', label: 'Код', category: 'dev' },
+            { name: 'terminal', label: 'Терминал', category: 'dev' },
+            { name: 'bug_report', label: 'Баг', category: 'dev' },
+            { name: 'developer_mode', label: 'Разработка', category: 'dev' },
+            { name: 'api', label: 'API', category: 'dev' },
+            { name: 'css', label: 'CSS', category: 'dev' },
+            { name: 'html', label: 'HTML', category: 'dev' },
+            { name: 'javascript', label: 'JS', category: 'dev' },
+            { name: 'data_object', label: 'JSON / Объект', category: 'dev' },
+            { name: 'webhook', label: 'Вебхук', category: 'dev' },
+            { name: 'database', label: 'База данных', category: 'dev' },
+
+            // Tools & Settings
+            { name: 'settings', label: 'Настройки', category: 'tools' },
+            { name: 'build', label: 'Ключ', category: 'tools' },
+            { name: 'tune', label: 'Ползунки', category: 'tools' },
+            { name: 'extension', label: 'Плагин', category: 'tools' },
+            { name: 'auto_awesome', label: 'Магия', category: 'tools' },
+            { name: 'shield', label: 'Защита', category: 'tools' },
+            { name: 'key', label: 'Ключ', category: 'tools' },
+            { name: 'lock', label: 'Замок', category: 'tools' },
+            { name: 'design_services', label: 'Дизайн', category: 'tools' },
+            { name: 'calculate', label: 'Калькулятор', category: 'tools' },
+
+            // Communication & Social
+            { name: 'mail', label: 'Почта', category: 'comm' },
+            { name: 'chat', label: 'Чат', category: 'comm' },
+            { name: 'call', label: 'Звонок', category: 'comm' },
+            { name: 'share', label: 'Поделиться', category: 'comm' },
+            { name: 'send', label: 'Отправить', category: 'comm' },
+            { name: 'notifications', label: 'Уведомления', category: 'comm' },
+            { name: 'person', label: 'Профиль', category: 'comm' },
+            { name: 'group', label: 'Группа', category: 'comm' },
+            { name: 'public', label: 'Планета', category: 'comm' },
+
+            // Business & Finance
+            { name: 'shopping_cart', label: 'Корзина', category: 'business' },
+            { name: 'payments', label: 'Платежи', category: 'business' },
+            { name: 'credit_card', label: 'Карта', category: 'business' },
+            { name: 'analytics', label: 'Аналитика', category: 'business' },
+            { name: 'trending_up', label: 'Тренды', category: 'business' },
+            { name: 'savings', label: 'Копилка', category: 'business' },
+            { name: 'work', label: 'Портфель', category: 'business' },
+            { name: 'pie_chart', label: 'Диаграмма', category: 'business' }
+        ];
+
+        const iconCategories = [
+            { id: 'all', name: 'Все значки', icon: 'apps' },
+            { id: 'file', name: 'Файлы', icon: 'description' },
+            { id: 'media', name: 'Медиа', icon: 'image' },
+            { id: 'dev', name: 'Код / Dev', icon: 'code' },
+            { id: 'tools', name: 'Опции / Инструменты', icon: 'settings' },
+            { id: 'comm', name: 'Связь', icon: 'chat' },
+            { id: 'business', name: 'Бизнес', icon: 'payments' }
+        ];
+
+        let selectedCategory = 'all';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initInputs();
+            initModalCatalog();
+            renderVectorIcon();
+        });
+
+        function initModalCatalog() {
+            renderCategoriesSidebar();
+            renderIconsGrid();
+
+            document.getElementById('iconSearchInput').addEventListener('input', (e) => {
+                renderIconsGrid(e.target.value);
+            });
+        }
+
+        function openIconModal() {
+            const modal = document.getElementById('iconModal');
+            const container = document.getElementById('iconModalContainer');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            container.classList.remove('scale-95');
+            container.classList.add('scale-100');
+        }
+
+        function closeIconModal() {
+            const modal = document.getElementById('iconModal');
+            const container = document.getElementById('iconModalContainer');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            container.classList.remove('scale-100');
+            container.classList.add('scale-95');
+        }
+
+        function renderCategoriesSidebar() {
+            const container = document.getElementById('categoriesList');
+            container.innerHTML = iconCategories.map(cat => `
+                <button onclick="selectCategory('${cat.id}')" 
+                        class="cat-btn w-full text-left px-2.5 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition ${selectedCategory === cat.id ? 'bg-cyan-600/30 text-cyan-300 border border-cyan-500/40' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}">
+                    <span class="material-symbols-outlined text-base">${cat.icon}</span>
+                    <span>${cat.name}</span>
+                </button>
+            `).join('');
+        }
+
+        function selectCategory(catId) {
+            selectedCategory = catId;
+            renderCategoriesSidebar();
+            const searchVal = document.getElementById('iconSearchInput').value;
+            renderIconsGrid(searchVal);
+        }
+
+        function renderIconsGrid(filterQuery = '') {
+            const grid = document.getElementById('materialIconsGrid');
+            const noFound = document.getElementById('noIconsFound');
+            const query = filterQuery.toLowerCase().trim();
+
+            const filtered = materialCatalog.filter(item => {
+                const matchesCat = selectedCategory === 'all' || item.category === selectedCategory;
+                const matchesSearch = !query || item.name.toLowerCase().includes(query) || item.label.toLowerCase().includes(query);
+                return matchesCat && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                noFound.classList.remove('hidden');
+                return;
+            }
+
+            noFound.classList.add('hidden');
+            grid.innerHTML = filtered.map(item => `
+                <button onclick="setMaterialOverlay('${item.name}'); closeIconModal();" 
+                        class="p-2.5 rounded-xl bg-slate-800 hover:bg-cyan-600/20 hover:border-cyan-500 border border-slate-700/60 flex flex-col items-center justify-center gap-1 transition group text-center">
+                    <span class="material-symbols-outlined text-2xl text-slate-300 group-hover:text-cyan-400 group-hover:scale-110 transition-transform">${item.name}</span>
+                    <span class="text-[10px] text-slate-400 group-hover:text-cyan-200 truncate w-full">${item.label}</span>
+                </button>
+            `).join('');
+        }
+
+        // Fetches raw SVG paths dynamically so they don't render as text on canvas export
+        async function fetchMaterialIconSvg(iconName) {
+            if (svgIconCache[iconName]) return svgIconCache[iconName];
+            
+            try {
+                // Используем стабильный CDN-зеркало и извлекаем оригинальный viewBox.
+                // У новых Material Symbols нестандартная сетка (0 -960 960 960), 
+                // из-за чего простая математическая трансформация отбрасывала иконку за пределы холста.
+                let url = `https://cdn.jsdelivr.net/gh/marella/material-symbols@main/svg/400/outlined/${iconName}.svg`;
+                let response = await fetch(url);
+                
+                if (!response.ok) {
+                    // Фоллбэк на официальный CDN Google, если первый недоступен
+                    url = `https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/${iconName}/default/24px.svg`;
+                    response = await fetch(url);
+                }
+
+                if (response.ok) {
+                    const text = await response.text();
+                    
+                    // Динамически извлекаем viewBox
+                    const viewBoxMatch = text.match(/viewBox=["']?([^"'>]+)["']?/i);
+                    const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 -960 960 960';
+                    
+                    // Извлекаем внутреннее содержимое (пути)
+                    const match = text.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
+                    if (match) {
+                        const iconData = { viewBox: viewBox, inner: match[1] };
+                        svgIconCache[iconName] = iconData;
+                        return iconData;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed fetching from CDN, falling back to text rendering', e);
+            }
+            return null;
+        }
+
+        async function setMaterialOverlay(iconName) {
+            state.overlayType = 'material';
+            state.materialIcon = iconName;
+            state.customImgSrc = null;
+            document.getElementById('clearImageBtn').classList.add('hidden');
+            document.getElementById('uploadLabelText').textContent = 'Выберите PNG файл...';
+
+            // Pre-render immediately with font fallback for snappy UI responsiveness
+            state.materialIconSvg = null; 
+            renderVectorIcon();
+
+            // Load pure SVG vector data in background
+            const svgContent = await fetchMaterialIconSvg(iconName);
+            if (svgContent) {
+                state.materialIconSvg = svgContent;
+                renderVectorIcon(); // Swap font text to pure vector <path>
+                showToast(`Векторный значок "${iconName}" успешно применен`);
+            }
+        }
+
+        function setPresetOverlay(type) {
+            state.overlayType = type;
+            if (type !== 'custom') {
+                state.customImgSrc = null;
+                document.getElementById('clearImageBtn').classList.add('hidden');
+                document.getElementById('uploadLabelText').textContent = 'Выберите PNG файл...';
+            }
+            renderVectorIcon();
+        }
+
+        function generateSvgString() {
+            const width = 240;
+            const height = 300;
+            const r = state.cornerRadius;
+            const fold = state.foldSize;
+
+            const bodyPath = `
+                M ${r},0 
+                L ${width - fold},0 
+                L ${width},${fold} 
+                L ${width},${height - r} 
+                A ${r},${r} 0 0 1 ${width - r},${height} 
+                L ${r},${height} 
+                A ${r},${r} 0 0 1 0,${height - r} 
+                L 0,${r} 
+                A ${r},${r} 0 0 1 ${r},0 
+                Z
+            `.replace(/\s+/g, ' ').trim();
+
+            const flapRadius = Math.min(16, fold / 3);
+            const flapPath = `
+                M ${width - fold},0 
+                L ${width - fold},${fold - flapRadius} 
+                A ${flapRadius},${flapRadius} 0 0 0 ${width - fold + flapRadius},${fold} 
+                L ${width},${fold} 
+                Z
+            `.replace(/\s+/g, ' ').trim();
+
+            // Text Element Font Imports
+            let fontImport = '';
+            if (['Montserrat', 'Inter', '"Fira Code"'].includes(state.textFont)) {
+                const fontName = state.textFont.replace(/"/g, '').replace(' ', '+');
+                fontImport = `@import url('https://fonts.googleapis.com/css2?family=${fontName}:wght@600;700;900&amp;display=swap');`;
+            }
+
+            // Text Element
+            let textElement = '';
+            if (state.text && state.text.trim() !== '') {
+                const textX = (width / 2) + state.textOffsetX;
+                const textY = (height / 2 + 15) + state.textOffsetY;
+                textElement = `
+                    <text x="${textX}" y="${textY}" 
+                          fill="${state.textColor}" 
+                          font-family="${state.textFont}, sans-serif" 
+                          font-size="${state.textSize}px" 
+                          font-weight="900" 
+                          text-anchor="middle" 
+                          dominant-baseline="central"
+                          letter-spacing="-1px">
+                        ${escapeXml(state.text)}
+                    </text>
+                `;
+            }
+
+            // Overlay Graphic Generation
+            let overlayElement = '';
+            const centerX = (width / 2) + state.imgOffsetX;
+            const centerY = (height / 2 + 10) + state.imgOffsetY;
+            const scale = state.imgScale / 100;
+
+            if (state.overlayType === 'material') {
+                if (state.materialIconSvg && state.materialIconSvg.inner) {
+                    const iconSize = 85 * scale;
+                    
+                    // Безопасный парсинг viewBox исходной иконки для вычисления масштаба
+                    let vbX = 0, vbY = -960, vbW = 960, vbH = 960;
+                    if (state.materialIconSvg.viewBox) {
+                        const vbParts = state.materialIconSvg.viewBox.split(/\s+/).map(Number);
+                        if (vbParts.length === 4 && !isNaN(vbParts[2])) {
+                            [vbX, vbY, vbW, vbH] = vbParts;
+                        }
+                    }
+
+                    // Вычисляем математический масштаб и сдвиг вместо вложенного <svg>
+                    const sX = iconSize / vbW;
+                    const sY = iconSize / vbH;
+                    const tx = centerX - (iconSize / 2) - (vbX * sX);
+                    const ty = centerY - (iconSize / 2) - (vbY * sY);
+                    
+                    overlayElement = `
+                        <!-- Чистый Вектор (Плоская математическая трансформация) -->
+                        <g transform="translate(${tx.toFixed(2)}, ${ty.toFixed(2)}) scale(${sX.toFixed(5)}, ${sY.toFixed(5)})" fill="${state.textColor}">
+                            ${state.materialIconSvg.inner}
+                        </g>
+                    `;
+                } else {
+                    // Fallback to text (if offline/failed fetch)
+                    const fontSize = 85 * scale;
+                    overlayElement = `
+                        <text x="${centerX}" y="${centerY}" 
+                              fill="${state.textColor}" 
+                              font-family="'Material Symbols Outlined', sans-serif" 
+                              font-size="${fontSize}px" 
+                              text-anchor="middle" 
+                              dominant-baseline="central">
+                            ${state.materialIcon}
+                        </text>
+                    `;
+                }
+            } else if (state.overlayType === 'custom' && state.customImgSrc) {
+                const imgWidth = 120 * scale;
+                const imgHeight = 120 * scale;
+                overlayElement = `
+                    <image x="${centerX - imgWidth/2}" y="${centerY - imgHeight/2}" 
+                           width="${imgWidth}" height="${imgHeight}" 
+                           href="${state.customImgSrc}" xlink:href="${state.customImgSrc}" preserveAspectRatio="xMidYMid meet" />
+                `;
+            }
+
+            return `
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
+    <defs>
+        <style>
+            ${fontImport}
+            @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0');
+        </style>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+    <g filter="url(#shadow)">
+        <path d="${bodyPath}" fill="${state.bgColor}" />
+        <path d="${flapPath}" fill="${state.foldColor}" />
+    </g>
+    ${textElement}
+    ${overlayElement}
+</svg>
+            `.trim();
+        }
+
+        function initInputs() {
+            const bgColorInput = document.getElementById('bgColor');
+            const bgColorHex = document.getElementById('bgColorHex');
+            const foldColorInput = document.getElementById('foldColor');
+            const foldColorHex = document.getElementById('foldColorHex');
+            const autoFoldColor = document.getElementById('autoFoldColor');
+
+            bgColorInput.addEventListener('input', (e) => {
+                state.bgColor = e.target.value;
+                bgColorHex.value = e.target.value.toUpperCase();
+                if (state.autoFoldColor) {
+                    state.foldColor = adjustBrightness(state.bgColor, -25);
+                    foldColorInput.value = state.foldColor;
+                    foldColorHex.value = state.foldColor.toUpperCase();
+                }
+                renderVectorIcon();
+            });
+
+            bgColorHex.addEventListener('change', (e) => {
+                if (isValidHex(e.target.value)) {
+                    state.bgColor = e.target.value;
+                    bgColorInput.value = e.target.value;
+                    if (state.autoFoldColor) {
+                        state.foldColor = adjustBrightness(state.bgColor, -25);
+                        foldColorInput.value = state.foldColor;
+                        foldColorHex.value = state.foldColor.toUpperCase();
+                    }
+                    renderVectorIcon();
+                }
+            });
+
+            foldColorInput.addEventListener('input', (e) => {
+                state.foldColor = e.target.value;
+                foldColorHex.value = e.target.value.toUpperCase();
+                state.autoFoldColor = false;
+                autoFoldColor.checked = false;
+                renderVectorIcon();
+            });
+
+            foldColorHex.addEventListener('change', (e) => {
+                if (isValidHex(e.target.value)) {
+                    state.foldColor = e.target.value;
+                    foldColorInput.value = e.target.value;
+                    state.autoFoldColor = false;
+                    autoFoldColor.checked = false;
+                    renderVectorIcon();
+                }
+            });
+
+            autoFoldColor.addEventListener('change', (e) => {
+                state.autoFoldColor = e.target.checked;
+                if (state.autoFoldColor) {
+                    state.foldColor = adjustBrightness(state.bgColor, -25);
+                    foldColorInput.value = state.foldColor;
+                    foldColorHex.value = state.foldColor.toUpperCase();
+                    renderVectorIcon();
+                }
+            });
+
+            bindSlider('cornerRadius', 'cornerRadiusVal', 'px', (val) => state.cornerRadius = parseInt(val));
+            bindSlider('foldSize', 'foldSizeVal', 'px', (val) => state.foldSize = parseInt(val));
+
+            document.getElementById('iconText').addEventListener('input', (e) => {
+                state.text = e.target.value;
+                renderVectorIcon();
+            });
+
+            const textColorInput = document.getElementById('textColor');
+            const textColorHex = document.getElementById('textColorHex');
+
+            textColorInput.addEventListener('input', (e) => {
+                state.textColor = e.target.value;
+                textColorHex.value = e.target.value.toUpperCase();
+                renderVectorIcon();
+            });
+
+            textColorHex.addEventListener('change', (e) => {
+                if (isValidHex(e.target.value)) {
+                    state.textColor = e.target.value;
+                    textColorInput.value = e.target.value;
+                    renderVectorIcon();
+                }
+            });
+
+            document.getElementById('textFont').addEventListener('change', (e) => {
+                state.textFont = e.target.value;
+                renderVectorIcon();
+            });
+
+            bindSlider('textSize', 'textSizeVal', 'px', (val) => state.textSize = parseInt(val));
+            bindSlider('textOffsetX', 'textOffsetXVal', '', (val) => state.textOffsetX = parseInt(val));
+            bindSlider('textOffsetY', 'textOffsetYVal', '', (val) => state.textOffsetY = parseInt(val));
+
+            bindSlider('imgScale', 'imgScaleVal', '%', (val) => state.imgScale = parseInt(val));
+            bindSlider('imgOffsetX', 'imgOffsetXVal', '', (val) => state.imgOffsetX = parseInt(val));
+            bindSlider('imgOffsetY', 'imgOffsetYVal', '', (val) => state.imgOffsetY = parseInt(val));
+
+            const imageUpload = document.getElementById('imageUpload');
+            const clearImageBtn = document.getElementById('clearImageBtn');
+            const uploadLabelText = document.getElementById('uploadLabelText');
+
+            imageUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        state.customImgSrc = evt.target.result;
+                        state.overlayType = 'custom';
+                        uploadLabelText.textContent = file.name;
+                        clearImageBtn.classList.remove('hidden');
+                        renderVectorIcon();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            clearImageBtn.addEventListener('click', () => {
+                state.customImgSrc = null;
+                state.overlayType = 'none';
+                imageUpload.value = '';
+                uploadLabelText.textContent = 'Выберите PNG файл...';
+                clearImageBtn.classList.add('hidden');
+                renderVectorIcon();
+            });
+
+            document.getElementById('copySvgBtn').addEventListener('click', copySvgCode);
+            document.getElementById('downloadSvgBtn').addEventListener('click', downloadSvg);
+            document.getElementById('downloadPngBtn').addEventListener('click', downloadPng);
+        }
+
+        function bindSlider(id, valDisplayId, unit, updateStateFn) {
+            const slider = document.getElementById(id);
+            const valDisplay = document.getElementById(valDisplayId);
+            slider.addEventListener('input', (e) => {
+                const val = e.target.value;
+                valDisplay.textContent = val + unit;
+                updateStateFn(val);
+                renderVectorIcon();
+            });
+        }
+
+        function renderVectorIcon() {
+            const svgWrapper = document.getElementById('svgWrapper');
+            const svgCode = generateSvgString();
+            svgWrapper.innerHTML = svgCode;
+        }
+
+        async function applyPreset(presetKey) {
+            if (presetKey === 'vcf') {
+                state.bgColor = '#50D2FE';
+                state.foldColor = '#236FE0';
+                state.autoFoldColor = true;
+                state.text = 'VCF';
+                state.textColor = '#236FE0';
+                state.textFont = 'Montserrat';
+                state.textSize = 64;
+                state.textOffsetX = 0;
+                state.textOffsetY = 15;
+                state.overlayType = 'none';
+            } else if (presetKey === 'html') {
+                state.bgColor = '#34D399';
+                state.foldColor = '#047857';
+                state.autoFoldColor = true;
+                state.text = 'HTML';
+                state.textColor = '#065F46';
+                state.textFont = 'Montserrat';
+                state.textSize = 54;
+                state.textOffsetX = 0;
+                state.textOffsetY = 15;
+                state.overlayType = 'none';
+            } else if (presetKey === 'exe') {
+                state.bgColor = '#F472B6';
+                state.foldColor = '#E11D48';
+                state.autoFoldColor = true;
+                state.text = 'EXE';
+                state.textColor = '#9F1239';
+                state.textFont = 'Montserrat';
+                state.textSize = 60;
+                state.textOffsetX = 0;
+                state.textOffsetY = 15;
+                state.overlayType = 'none';
+            } else if (presetKey === 'image') {
+                state.bgColor = '#50D2FE';
+                state.foldColor = '#236FE0';
+                state.autoFoldColor = true;
+                state.text = '';
+                state.textColor = '#1E51A4';
+                state.imgScale = 100;
+                state.imgOffsetX = 0;
+                state.imgOffsetY = 10;
+                syncInputsWithState();
+                await setMaterialOverlay('image'); // Trigger async loading of vector
+                return;
+            } else if (presetKey === 'pdf') {
+                state.bgColor = '#EF4444';
+                state.foldColor = '#991B1B';
+                state.autoFoldColor = true;
+                state.text = 'PDF';
+                state.textColor = '#FFFFFF';
+                state.textFont = 'Montserrat';
+                state.textSize = 60;
+                state.textOffsetX = 0;
+                state.textOffsetY = 15;
+                state.overlayType = 'none';
+            } else if (presetKey === 'blank') {
+                state.bgColor = '#50D2FE';
+                state.foldColor = '#236FE0';
+                state.autoFoldColor = true;
+                state.text = '';
+                state.overlayType = 'none';
+            }
+
+            syncInputsWithState();
+            renderVectorIcon();
+            showToast(`Применен пресет "${presetKey.toUpperCase()}"`);
+        }
+
+        function syncInputsWithState() {
+            document.getElementById('bgColor').value = state.bgColor;
+            document.getElementById('bgColorHex').value = state.bgColor.toUpperCase();
+            document.getElementById('foldColor').value = state.foldColor;
+            document.getElementById('foldColorHex').value = state.foldColor.toUpperCase();
+            document.getElementById('cornerRadius').value = state.cornerRadius;
+            document.getElementById('cornerRadiusVal').textContent = state.cornerRadius + 'px';
+            document.getElementById('foldSize').value = state.foldSize;
+            document.getElementById('foldSizeVal').textContent = state.foldSize + 'px';
+
+            document.getElementById('iconText').value = state.text;
+            document.getElementById('textColor').value = state.textColor;
+            document.getElementById('textColorHex').value = state.textColor.toUpperCase();
+            document.getElementById('textFont').value = state.textFont;
+            document.getElementById('textSize').value = state.textSize;
+            document.getElementById('textSizeVal').textContent = state.textSize + 'px';
+            document.getElementById('textOffsetX').value = state.textOffsetX;
+            document.getElementById('textOffsetXVal').textContent = state.textOffsetX;
+            document.getElementById('textOffsetY').value = state.textOffsetY;
+            document.getElementById('textOffsetYVal').textContent = state.textOffsetY;
+
+            document.getElementById('imgScale').value = state.imgScale;
+            document.getElementById('imgScaleVal').textContent = state.imgScale + '%';
+            document.getElementById('imgOffsetX').value = state.imgOffsetX;
+            document.getElementById('imgOffsetXVal').textContent = state.imgOffsetX;
+            document.getElementById('imgOffsetY').value = state.imgOffsetY;
+            document.getElementById('imgOffsetYVal').textContent = state.imgOffsetY;
+        }
+
+        function setPngExportSize(size, btnElement) {
+            state.pngExportSize = size;
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.classList.remove('bg-cyan-600/30', 'border-cyan-500', 'text-cyan-300');
+                btn.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-300');
+            });
+            if (btnElement) {
+                btnElement.classList.remove('bg-slate-800', 'border-slate-700', 'text-slate-300');
+                btnElement.classList.add('bg-cyan-600/30', 'border-cyan-500', 'text-cyan-300');
+            }
+            const pngBtnText = document.getElementById('downloadPngBtnText');
+            if (pngBtnText) {
+                pngBtnText.textContent = `Скачать PNG (${size}x${size})`;
+            }
+        }
+
+        function downloadSvg() {
+            try {
+                const svgContent = generateSvgString();
+                const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                // Формируем безопасное имя файла (оставляем только буквы и цифры)
+                const safeName = (state.text || state.materialIcon || 'custom').replace(/[^a-zа-яё0-9]/gi, '_').toLowerCase();
+                
+                a.href = url;
+                a.download = `file-icon-${safeName}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // ВАЖНО: Даем браузеру секунду на старт загрузки перед очисткой памяти
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 1000);
+                
+                showToast('SVG файл успешно скачан!');
+            } catch (err) {
+                console.error("Download SVG Error:", err);
+                showToast('Ошибка при создании SVG файла.');
+            }
+        }
+
+        function copySvgCode() {
+            const svgContent = generateSvgString();
+            const textarea = document.createElement('textarea');
+            textarea.value = svgContent;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('Код SVG скопирован в буфер обмена');
+        }
+
+        function downloadPng() {
+            // Вырезаем внешние стили @import. Внутри <img> они блокируются 
+            // браузерами по CORS и вызывают onerror.
+            let svgString = generateSvgString();
+            svgString = svgString.replace(/@import url\([^)]+\);/g, '');
+
+            const canvas = document.getElementById('exportCanvas');
+            const ctx = canvas.getContext('2d');
+            const size = state.pngExportSize;
+
+            canvas.width = size;
+            canvas.height = size;
+
+            const img = new Image();
+            
+            // Используем Blob URL — это самый стабильный формат для рендера в Canvas
+            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = function() {
+                ctx.clearRect(0, 0, size, size);
+                
+                const scale = size / 300;
+                const dw = 240 * scale;
+                const dh = 300 * scale;
+                const dx = (size - dw) / 2;
+                const dy = (size - dh) / 2;
+
+                ctx.drawImage(img, dx, dy, dw, dh);
+                URL.revokeObjectURL(url); // Очищаем память
+
+                try {
+                    const pngUrl = canvas.toDataURL('image/png');
+                    const safeName = (state.text || state.materialIcon || 'custom').replace(/[^a-zа-яё0-9]/gi, '_').toLowerCase();
+                    
+                    const a = document.createElement('a');
+                    a.href = pngUrl;
+                    a.download = `file-icon-${safeName}-${size}x${size}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    showToast(`PNG (${size}x${size}px) успешно скачан!`);
+                } catch (e) {
+                    console.error("CORS Export Error:", e);
+                    showToast("Ошибка безопасности (CORS). Попробуйте скачать формат SVG.");
+                }
+            };
+
+            img.onerror = function(err) {
+                console.error("Image render failed:", err);
+                showToast("Ошибка рендеринга иконки. Нажмите 'Скачать SVG'.");
+            };
+
+            // Запускаем рендер
+            img.src = url;
+        }
+
+        function adjustBrightness(hex, percent) {
+            hex = hex.replace(/^#/, '');
+            if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+            let num = parseInt(hex, 16);
+            let r = (num >> 16) + Math.round(2.55 * percent);
+            let g = ((num >> 8) & 0x00FF) + Math.round(2.55 * percent);
+            let b = (num & 0x0000FF) + Math.round(2.55 * percent);
+
+            r = Math.min(255, Math.max(0, r));
+            g = Math.min(255, Math.max(0, g));
+            b = Math.min(255, Math.max(0, b));
+
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function isValidHex(hex) {
+            return /^#([0-9A-F]{3}){1,2}$/i.test(hex);
+        }
+
+        function escapeXml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe.replace(/[<>&'"]/g, function (c) {
+                switch (c) {
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '&': return '&amp;';
+                    case "'": return '&apos;';
+                    case '"': return '&quot;';
+                }
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.textContent = message;
+            toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
