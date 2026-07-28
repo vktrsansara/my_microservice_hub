@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Viewer Pro</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SQL.js WebAssembly Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased overflow-hidden select-none">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-brand-600/20 text-brand-500 rounded-lg">
+                <i class="fa-solid fa-database text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-100 leading-none">SQLite Browser Web</h1>
+                <p class="text-xs text-slate-400 mt-1" id="db-status-text">База данных не загружена</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="loadSampleDatabase()" class="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-flask text-amber-400"></i>
+                Демо-база
+            </button>
+            
+            <label class="px-3 py-1.5 text-xs font-medium bg-brand-600 hover:bg-brand-500 text-white rounded-lg cursor-pointer transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-folder-open"></i>
+                Открыть БД
+                <input type="file" id="db-file-input" accept=".sqlite,.db,.sqlite3" class="hidden" onchange="handleFileSelect(event)">
+            </label>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- Drag & Drop Overlay Zone -->
+        <div id="drop-zone" class="hidden absolute inset-0 bg-brand-600/20 backdrop-blur-sm border-4 border-dashed border-brand-500 z-50 flex-col items-center justify-center transition-all">
+            <i class="fa-solid fa-file-arrow-up text-6xl text-brand-400 animate-bounce mb-4"></i>
+            <p class="text-xl font-bold text-white">Перетащите файл SQLite сюда</p>
+            <p class="text-sm text-slate-300 mt-1">Поддерживаются форматы: .db, .sqlite, .sqlite3</p>
+        </div>
+
+        <!-- Sidebar (Tables list) -->
+        <aside class="w-64 bg-slate-800/50 border-r border-slate-700/80 flex flex-col shrink-0">
+            <div class="p-3 border-b border-slate-700/60">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="text" id="table-search" placeholder="Поиск таблиц..." oninput="filterTables()" 
+                           class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-2" id="tables-container">
+                <div class="text-center py-8 text-slate-500 text-xs">
+                    <i class="fa-solid fa-database text-2xl mb-2 block opacity-40"></i>
+                    Загрузите базу данных для просмотра таблиц
+                </div>
+            </div>
+
+            <!-- Database Quick Info Footer -->
+            <div class="p-3 border-t border-slate-700/80 bg-slate-800/80 text-xs text-slate-400 flex justify-between">
+                <span>Таблиц: <strong id="stat-tables-count" class="text-slate-200">0</strong></span>
+                <span>Размер: <strong id="stat-file-size" class="text-slate-200">0 KB</strong></span>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+
+            <!-- Navigation Tabs -->
+            <div class="bg-slate-800/80 border-b border-slate-700 px-4 flex gap-1 shrink-0">
+                <button onclick="switchTab('data')" id="tab-btn-data" class="tab-btn active px-4 py-2.5 text-xs font-semibold border-b-2 border-brand-500 text-brand-400 flex items-center gap-2">
+                    <i class="fa-solid fa-table"></i> Данные
+                </button>
+                <button onclick="switchTab('schema')" id="tab-btn-schema" class="tab-btn px-4 py-2.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-sitemap"></i> Структура
+                </button>
+                <button onclick="switchTab('sql')" id="tab-btn-sql" class="tab-btn px-4 py-2.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-terminal"></i> SQL Запросы
+                </button>
+            </div>
+
+            <!-- TAB 1: DATA BROWSER -->
+            <div id="tab-content-data" class="tab-content flex-1 flex flex-col overflow-hidden">
+                <!-- Data Toolbar -->
+                <div class="p-3 bg-slate-800/30 border-b border-slate-700/60 flex items-center justify-between gap-4 flex-wrap">
+                    <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <span class="text-xs text-slate-400">Таблица:</span>
+                        <span id="current-table-name" class="text-xs font-bold text-slate-200 bg-slate-800 px-2.5 py-1 rounded border border-slate-700">Не выбрана</span>
+                        <div class="relative flex-1 max-w-xs">
+                            <i class="fa-solid fa-filter absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
+                            <input type="text" id="data-search-input" onkeyup="handleDataSearch()" placeholder="Фильтр записей..." 
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1 text-xs text-slate-400">
+                            <span>На стр:</span>
+                            <select id="page-size-select" onchange="changePageSize()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded px-2 py-1">
+                                <option value="15">15</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="500">500</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-1">
+                            <button onclick="prevPage()" id="prev-page-btn" disabled class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 disabled:opacity-40 hover:bg-slate-700 text-xs">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <span id="page-indicator" class="text-xs text-slate-400 px-2">0 / 0</span>
+                            <button onclick="nextPage()" id="next-page-btn" disabled class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 disabled:opacity-40 hover:bg-slate-700 text-xs">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <button onclick="exportCurrentTableCSV()" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors flex items-center gap-1.5" title="Экспорт в CSV">
+                            <i class="fa-solid fa-file-csv text-emerald-400"></i> Экспорт
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Grid Area -->
+                <div class="flex-1 overflow-auto relative p-3">
+                    <table id="data-table" class="w-full text-xs text-left text-slate-300 border-collapse">
+                        <!-- Dynamic content -->
+                    </table>
+                    <div id="data-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+                        <i class="fa-solid fa-table-cells text-4xl mb-2 opacity-30"></i>
+                        <p>Выберите таблицу на панели слева</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: SCHEMA & STRUCTURE -->
+            <div id="tab-content-schema" class="tab-content hidden flex-1 flex flex-col overflow-y-auto p-4 space-y-6">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-columns text-brand-500"></i>
+                        Столбцы таблицы <span id="schema-table-title" class="text-brand-400"></span>
+                    </h3>
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700/80 overflow-hidden">
+                        <table class="w-full text-xs text-left text-slate-300">
+                            <thead class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-700">
+                                <tr>
+                                    <th class="p-3">CID</th>
+                                    <th class="p-3">Имя</th>
+                                    <th class="p-3">Тип</th>
+                                    <th class="p-3">Not Null</th>
+                                    <th class="p-3">Значение по умолчанию</th>
+                                    <th class="p-3">PK</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schema-columns-body" class="divide-y divide-slate-700/50">
+                                <tr><td colspan="6" class="p-4 text-center text-slate-500">Выберите таблицу</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-200 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-code text-amber-500"></i>
+                        CREATE TABLE DDL Запрос
+                    </h3>
+                    <pre id="schema-sql-code" class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap select-text">SELECT * FROM ...</pre>
+                </div>
+            </div>
+
+            <!-- TAB 3: SQL EDITOR -->
+            <div id="tab-content-sql" class="tab-content hidden flex-1 flex flex-col overflow-hidden p-4 gap-4">
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <label for="sql-input" class="text-xs font-semibold text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-code text-brand-500"></i> Редактор SQL запросов
+                        </label>
+                        <div class="flex gap-2">
+                            <button onclick="insertSqlSnippet('SELECT')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">SELECT</button>
+                            <button onclick="insertSqlSnippet('COUNT')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">COUNT(*)</button>
+                            <button onclick="insertSqlSnippet('PRAGMA')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">PRAGMA</button>
+                        </div>
+                    </div>
+                    
+                    <textarea id="sql-input" rows="5" placeholder="Введите SQL запрос здесь... (Например: SELECT * FROM sqlite_master;)"
+                              class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-100 focus:outline-none focus:border-brand-500 resize-none"></textarea>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-slate-500">Подсказка: нажмите <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300">Ctrl + Enter</kbd> для запуска</span>
+                        <button onclick="runCustomQuery()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 shadow-lg shadow-brand-600/20">
+                            <i class="fa-solid fa-play"></i> Выполнить запрос
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Query Execution Info / Errors -->
+                <div id="sql-status" class="hidden p-3 rounded-lg text-xs border"></div>
+
+                <!-- Query Results Grid -->
+                <div class="flex-1 overflow-auto rounded-xl border border-slate-700/80 bg-slate-950/40 relative">
+                    <table id="sql-result-table" class="w-full text-xs text-left text-slate-300 border-collapse"></table>
+                    <div id="sql-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+                        <i class="fa-solid fa-terminal text-3xl mb-2 opacity-30"></i>
+                        <p>Результаты запроса появятся здесь</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Global State
+        let db = null;
+        let tables = [];
+        let currentTable = null;
+        let currentData = { columns: [], values: [] };
+        let filteredData = [];
+        let currentPage = 1;
+        let pageSize = 15;
+        let dbFileSize = 0;
+
+        // Initialize SQL.js engine
+        let SQL = null;
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                });
+                showToast('Ядро SQLite успешно загружено', 'success');
+            } catch (err) {
+                showToast('Ошибка загрузки WASM модуля SQLite: ' + err.message, 'error');
+            }
+
+            // Global Keybindings
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    const activeTab = document.querySelector('.tab-content:not(.hidden)').id;
+                    if (activeTab === 'tab-content-sql') {
+                        runCustomQuery();
+                    }
+                }
+            });
+
+            setupDragAndDrop();
+        });
+
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('hidden');
+                dropZone.classList.add('flex');
+            });
+
+            dropZone.addEventListener('dragleave', (e) => {
+                if (e.relatedTarget === null) {
+                    dropZone.classList.add('hidden');
+                    dropZone.classList.remove('flex');
+                }
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('hidden');
+                dropZone.classList.remove('flex');
+                if (e.dataTransfer.files.length > 0) {
+                    loadDatabaseFromFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                loadDatabaseFromFile(file);
+            }
+        }
+
+        function loadDatabaseFromFile(file) {
+            if (!SQL) {
+                showToast('Ядро SQLite еще загружается, подождите...', 'warning');
+                return;
+            }
+
+            const reader = new FileReader();
+            dbFileSize = file.size;
+
+            reader.onload = function() {
+                try {
+                    const Uints = new Uint8Array(reader.result);
+                    db = new SQL.Database(Uints);
+                    
+                    document.getElementById('db-status-text').textContent = `Загружен файл: ${file.name}`;
+                    document.getElementById('stat-file-size').textContent = formatBytes(dbFileSize);
+                    
+                    showToast(`База "${file.name}" успешно открыта`, 'success');
+                    refreshTableList();
+                } catch (e) {
+                    showToast('Не удалось распарсить SQLite файл: ' + e.message, 'error');
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function loadSampleDatabase() {
+            if (!SQL) return;
+
+            db = new SQL.Database();
+            
+            // Execute Demo SQL Schema
+            db.run(`
+                CREATE TABLE customers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE,
+                    balance REAL DEFAULT 0.0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE products (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    category TEXT,
+                    price REAL,
+                    stock INTEGER
+                );
+
+                CREATE TABLE orders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    customer_id INTEGER,
+                    product_id INTEGER,
+                    quantity INTEGER,
+                    total_price REAL,
+                    FOREIGN KEY(customer_id) REFERENCES customers(id),
+                    FOREIGN KEY(product_id) REFERENCES products(id)
+                );
+            `);
+
+            // Populate sample records
+            db.run(`
+                INSERT INTO customers (name, email, balance) VALUES 
+                ('Иван Иванов', 'ivan@example.com', 15500.50),
+                ('Анна Смирнова', 'anna@domain.ru', 4200.00),
+                ('Алексей Петров', 'alex@mail.ru', 0.00),
+                ('Елена Морозова', 'elena@test.com', 89000.75);
+
+                INSERT INTO products (title, category, price, stock) VALUES 
+                ('Ноутбук Pro 15', 'Электроника', 120000.00, 12),
+                ('Беспроводная мышь', 'Аксессуары', 2500.00, 85),
+                ('Механическая клавиатура', 'Аксессуары', 8500.00, 30),
+                ('4K Монитор 27"', 'Электроника', 45000.00, 7);
+
+                INSERT INTO orders (customer_id, product_id, quantity, total_price) VALUES 
+                (1, 1, 1, 120000.00),
+                (1, 2, 2, 5000.00),
+                (2, 3, 1, 8500.00),
+                (4, 4, 2, 90000.00);
+            `);
+
+            dbFileSize = 65536; // Approx sample memory size
+            document.getElementById('db-status-text').textContent = 'Демонстрационная база данных';
+            document.getElementById('stat-file-size').textContent = formatBytes(dbFileSize);
+
+            showToast('Демо-база данных сгенерирована', 'success');
+            refreshTableList();
+        }
+
+        function refreshTableList() {
+            if (!db) return;
+
+            try {
+                const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC");
+                tables = res.length > 0 ? res[0].values.map(row => row[0]) : [];
+                
+                document.getElementById('stat-tables-count').textContent = tables.length;
+                renderSidebarTables(tables);
+
+                if (tables.length > 0) {
+                    selectTable(tables[0]);
+                } else {
+                    currentTable = null;
+                    document.getElementById('current-table-name').textContent = 'Нет таблиц';
+                }
+            } catch (err) {
+                showToast('Ошибка при чтении списка таблиц: ' + err.message, 'error');
+            }
+        }
+
+        function renderSidebarTables(tableList) {
+            const container = document.getElementById('tables-container');
+            if (tableList.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs">Таблицы не найдены</div>`;
+                return;
+            }
+
+            container.innerHTML = tableList.map(name => `
+                <button onclick="selectTable('${escapeHtml(name)}')" 
+                        class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between group mb-1 ${currentTable === name ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30' : 'text-slate-300 hover:bg-slate-800'}">
+                    <span class="truncate flex items-center gap-2">
+                        <i class="fa-solid fa-table-list opacity-60 text-slate-400"></i>
+                        ${escapeHtml(name)}
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                </button>
+            `).join('');
+        }
+
+        function filterTables() {
+            const query = document.getElementById('table-search').value.toLowerCase();
+            const filtered = tables.filter(t => t.toLowerCase().includes(query));
+            renderSidebarTables(filtered);
+        }
+
+        function selectTable(tableName) {
+            currentTable = tableName;
+            document.getElementById('current-table-name').textContent = tableName;
+            document.getElementById('schema-table-title').textContent = tableName;
+
+            // Re-render sidebar active highlight
+            filterTables();
+
+            // Load table data
+            loadTableData();
+            
+            // Load table structure schema
+            loadTableSchema();
+        }
+
+        function loadTableData() {
+            if (!db || !currentTable) return;
+
+            try {
+                // Fetch all records for the current table
+                const res = db.exec(`SELECT * FROM "${currentTable}"`);
+                if (res.length > 0) {
+                    currentData = res[0];
+                } else {
+                    // Table exists but is empty -> get columns via pragma
+                    const colRes = db.exec(`PRAGMA table_info("${currentTable}")`);
+                    const cols = colRes[0].values.map(r => r[1]);
+                    currentData = { columns: cols, values: [] };
+                }
+
+                filteredData = [...currentData.values];
+                currentPage = 1;
+                renderDataGrid();
+            } catch (e) {
+                showToast(`Ошибка загрузки таблицы "${currentTable}": ${e.message}`, 'error');
+            }
+        }
+
+        function handleDataSearch() {
+            const query = document.getElementById('data-search-input').value.toLowerCase().trim();
+            if (!query) {
+                filteredData = [...currentData.values];
+            } else {
+                filteredData = currentData.values.filter(row => 
+                    row.some(val => val !== null && String(val).toLowerCase().includes(query))
+                );
+            }
+            currentPage = 1;
+            renderDataGrid();
+        }
+
+        function renderDataGrid() {
+            const table = document.getElementById('data-table');
+            const emptyState = document.getElementById('data-empty-state');
+
+            if (!currentTable || currentData.columns.length === 0) {
+                table.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            // Header
+            let headerHtml = `<thead class="bg-slate-800 text-slate-300 uppercase text-[10px] tracking-wider sticky top-0 z-10 border-b border-slate-700"><tr>`;
+            headerHtml += `<th class="p-2.5 text-center text-slate-500 border-r border-slate-700/60 w-12">#</th>`;
+            currentData.columns.forEach(col => {
+                headerHtml += `<th class="p-2.5 font-bold border-r border-slate-700/60 whitespace-nowrap">${escapeHtml(col)}</th>`;
+            });
+            headerHtml += `</tr></thead>`;
+
+            // Pagination slices
+            const totalRows = filteredData.length;
+            const totalPages = Math.ceil(totalRows / pageSize) || 1;
+            
+            if (currentPage > totalPages) currentPage = totalPages;
+            
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = Math.min(startIdx + pageSize, totalRows);
+            const pageRows = filteredData.slice(startIdx, endIdx);
+
+            // Update Pagination controls UI
+            document.getElementById('page-indicator').textContent = `${currentPage} / ${totalPages} (${totalRows})`;
+            document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+            document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+
+            // Rows Body
+            let bodyHtml = `<tbody class="divide-y divide-slate-800">`;
+            if (pageRows.length === 0) {
+                bodyHtml += `<tr><td colspan="${currentData.columns.length + 1}" class="p-6 text-center text-slate-500">Записи не найдены</td></tr>`;
+            } else {
+                pageRows.forEach((row, idx) => {
+                    const rowNum = startIdx + idx + 1;
+                    bodyHtml += `<tr class="hover:bg-slate-800/60 transition-colors">`;
+                    bodyHtml += `<td class="p-2.5 text-center text-slate-500 font-mono border-r border-slate-800/80">${rowNum}</td>`;
+                    
+                    row.forEach(val => {
+                        let formattedVal;
+                        if (val === null) {
+                            formattedVal = `<span class="italic text-slate-600 select-none">NULL</span>`;
+                        } else if (typeof val === 'number') {
+                            formattedVal = `<span class="text-amber-400 font-mono">${val}</span>`;
+                        } else {
+                            formattedVal = escapeHtml(String(val));
+                        }
+                        
+                        bodyHtml += `<td class="p-2.5 border-r border-slate-800/80 max-w-xs truncate" title="${escapeHtml(String(val))}">${formattedVal}</td>`;
+                    });
+                    
+                    bodyHtml += `</tr>`;
+                });
+            }
+            bodyHtml += `</tbody>`;
+
+            table.innerHTML = headerHtml + bodyHtml;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderDataGrid();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderDataGrid();
+            }
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('page-size-select').value, 10);
+            currentPage = 1;
+            renderDataGrid();
+        }
+
+        function loadTableSchema() {
+            if (!db || !currentTable) return;
+
+            try {
+                // Fetch PRAGMA info
+                const infoRes = db.exec(`PRAGMA table_info("${currentTable}")`);
+                const tbody = document.getElementById('schema-columns-body');
+                
+                if (infoRes.length > 0) {
+                    tbody.innerHTML = infoRes[0].values.map(col => `
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="p-3 font-mono text-slate-500">${col[0]}</td>
+                            <td class="p-3 font-bold text-slate-200">${escapeHtml(col[1])}</td>
+                            <td class="p-3 text-brand-400 font-mono">${escapeHtml(col[2] || 'ANY')}</td>
+                            <td class="p-3">${col[3] ? '<span class="text-rose-400 font-semibold">Да</span>' : '<span class="text-slate-500">Нет</span>'}</td>
+                            <td class="p-3 font-mono text-slate-400">${col[4] !== null ? escapeHtml(String(col[4])) : '<span class="italic text-slate-600">NULL</span>'}</td>
+                            <td class="p-3">${col[5] ? '<i class="fa-solid fa-key text-amber-400" title="Primary Key"></i>' : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Fetch DDL Statement
+                const ddlRes = db.exec(`SELECT sql FROM sqlite_master WHERE type='table' AND name="${currentTable}"`);
+                if (ddlRes.length > 0 && ddlRes[0].values.length > 0) {
+                    document.getElementById('schema-sql-code').textContent = ddlRes[0].values[0][0];
+                }
+            } catch (e) {
+                showToast('Ошибка загрузки схемы: ' + e.message, 'error');
+            }
+        }
+
+        function runCustomQuery() {
+            if (!db) {
+                showToast('Сначала загрузите или создайте базу данных', 'warning');
+                return;
+            }
+
+            const sql = document.getElementById('sql-input').value.trim();
+            if (!sql) {
+                showToast('Введите SQL запрос', 'warning');
+                return;
+            }
+
+            const statusDiv = document.getElementById('sql-status');
+            const resultTable = document.getElementById('sql-result-table');
+            const emptyState = document.getElementById('sql-empty-state');
+
+            const startTime = performance.now();
+
+            try {
+                const results = db.exec(sql);
+                const executionTime = (performance.now() - startTime).toFixed(2);
+
+                statusDiv.className = 'p-3 rounded-lg text-xs border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 flex justify-between items-center';
+                statusDiv.innerHTML = `<span><i class="fa-solid fa-circle-check mr-1.5"></i> Запрос выполнен успешно</span> <span class="font-mono text-slate-400">${executionTime} ms</span>`;
+                statusDiv.classList.remove('hidden');
+
+                if (results.length === 0) {
+                    resultTable.innerHTML = '';
+                    emptyState.innerHTML = `<i class="fa-solid fa-check text-3xl mb-2 text-emerald-400"></i><p>Запрос выполнен (0 строк возвращено)</p>`;
+                    emptyState.classList.remove('hidden');
+                    refreshTableList(); // Refresh sidebar in case tables were altered/created
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                const data = results[0];
+
+                // Build results grid
+                let header = `<thead class="bg-slate-800 text-slate-300 uppercase text-[10px] tracking-wider border-b border-slate-700"><tr>`;
+                data.columns.forEach(c => header += `<th class="p-2.5 font-bold border-r border-slate-700/60">${escapeHtml(c)}</th>`);
+                header += `</tr></thead>`;
+
+                let body = `<tbody class="divide-y divide-slate-800">`;
+                data.values.forEach(row => {
+                    body += `<tr class="hover:bg-slate-800/60">`;
+                    row.forEach(val => {
+                        let formattedVal = val === null ? `<span class="italic text-slate-600">NULL</span>` : escapeHtml(String(val));
+                        body += `<td class="p-2.5 border-r border-slate-800/80 max-w-xs truncate">${formattedVal}</td>`;
+                    });
+                    body += `</tr>`;
+                });
+                body += `</tbody>`;
+
+                resultTable.innerHTML = header + body;
+
+            } catch (err) {
+                statusDiv.className = 'p-3 rounded-lg text-xs border bg-rose-500/10 border-rose-500/30 text-rose-400';
+                statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Ошибка SQL: ${escapeHtml(err.message)}`;
+                statusDiv.classList.remove('hidden');
+                resultTable.innerHTML = '';
+                emptyState.classList.remove('hidden');
+            }
+        }
+
+        function insertSqlSnippet(type) {
+            const input = document.getElementById('sql-input');
+            if (type === 'SELECT' && currentTable) {
+                input.value = `SELECT * FROM "${currentTable}" LIMIT 50;`;
+            } else if (type === 'COUNT' && currentTable) {
+                input.value = `SELECT COUNT(*) FROM "${currentTable}";`;
+            } else if (type === 'PRAGMA' && currentTable) {
+                input.value = `PRAGMA table_info("${currentTable}");`;
+            } else {
+                input.value = `SELECT * FROM sqlite_master;`;
+            }
+            input.focus();
+        }
+
+        function exportCurrentTableCSV() {
+            if (!currentTable || !currentData.columns.length) {
+                showToast('Нет данных для экспорта', 'warning');
+                return;
+            }
+
+            let csvContent = "";
+            
+            // Header
+            csvContent += currentData.columns.map(c => `"${c.replace(/"/g, '""')}"`).join(",") + "\r\n";
+
+            // Rows
+            filteredData.forEach(row => {
+                const formattedRow = row.map(val => {
+                    if (val === null) return '""';
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                }).join(",");
+                csvContent += formattedRow + "\r\n";
+            });
+
+            // Download file
+            const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${currentTable}_export.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast(`Данные экспортированы в ${currentTable}_export.csv`, 'success');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-brand-500', 'text-brand-400');
+                btn.classList.add('border-transparent', 'text-slate-400');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+
+            const selectedBtn = document.getElementById(`tab-btn-${tabName}`);
+            const selectedContent = document.getElementById(`tab-content-${tabName}`);
+
+            selectedBtn.classList.add('active', 'border-brand-500', 'text-brand-400');
+            selectedBtn.classList.remove('border-transparent', 'text-slate-400');
+            selectedContent.classList.remove('hidden');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColors = {
+                success: 'bg-emerald-600 text-white',
+                error: 'bg-rose-600 text-white',
+                warning: 'bg-amber-600 text-white',
+                info: 'bg-brand-600 text-white'
+            };
+
+            const icons = {
+                success: 'fa-circle-check',
+                error: 'fa-circle-xmark',
+                warning: 'fa-triangle-exclamation',
+                info: 'fa-circle-info'
+            };
+
+            toast.className = `${bgColors[type] || bgColors.info} pointer-events-auto px-4 py-2.5 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2 transition-all transform translate-y-2 opacity-0 duration-200`;
+            toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${escapeHtml(message)}`;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&rawgt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
