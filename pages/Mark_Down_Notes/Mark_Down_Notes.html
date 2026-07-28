@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Down Notes — Markdown Editor</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        },
+                        panel: '#111827',
+                        sidebar: '#0b0f17',
+                        editor: '#161d2a',
+                        border: '#1f293d',
+                        active: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Marked.js (Markdown parser) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Turndown.js (HTML to Markdown parser) & GFM Plugin -->
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+    <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+    
+    <!-- JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Editor Content Styling for WYSIWYG mode */
+        .editor-content {
+            outline: none;
+            min-height: 100%;
+            color: #e2e8f0;
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+
+        .editor-content h1 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+            border-bottom: 1px solid #1f293d;
+            padding-bottom: 0.4rem;
+        }
+
+        .editor-content h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .editor-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .editor-content p {
+            margin-bottom: 0.85rem;
+        }
+
+        .editor-content ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .editor-content ol {
+            list-style-type: decimal;
+            padding-left: 1.5rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .editor-content blockquote {
+            border-left: 4px solid #38bdf8;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #94a3b8;
+            font-style: italic;
+            background: rgba(56, 189, 248, 0.05);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-radius: 0 0.375rem 0.375rem 0;
+        }
+
+        .editor-content code {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #1e293b;
+            color: #38bdf8;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }
+
+        .editor-content pre {
+            background-color: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .editor-content pre code {
+            background: none;
+            padding: 0;
+            color: #e2e8f0;
+        }
+
+        .editor-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: block;
+        }
+
+        .editor-content a {
+            color: #38bdf8;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        /* Checklists */
+        .editor-content ul.task-list {
+            list-style-type: none;
+            padding-left: 0.25rem;
+        }
+
+        .editor-content li.task-list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .editor-content li.task-list-item input[type="checkbox"] {
+            appearance: none;
+            width: 1.15rem;
+            height: 1.15rem;
+            border: 1px solid #475569;
+            border-radius: 0.25rem;
+            background-color: #0f172a;
+            cursor: pointer;
+            display: grid;
+            place-content: center;
+            margin-top: 0.25rem;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+
+        .editor-content li.task-list-item input[type="checkbox"]:checked {
+            background-color: #0284c7;
+            border-color: #0284c7;
+        }
+
+        .editor-content li.task-list-item input[type="checkbox"]:checked::before {
+            content: "✓";
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .editor-content li.task-list-item input[type="checkbox"]:checked + span {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+
+        /* Placeholder styling */
+        .editor-content:empty:before {
+            content: attr(data-placeholder);
+            color: #475569;
+            pointer-events: none;
+            display: block;
+        }
+
+        .toolbar-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.375rem;
+            color: #94a3b8;
+            transition: all 0.15s ease;
+        }
+
+        .toolbar-btn:hover {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+
+        .toolbar-btn.active {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 1.25rem;
+            background-color: #1f293d;
+            margin: 0 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-editor text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none">
+
+    <header class="h-12 bg-sidebar border-b border-border flex items-center justify-between px-4 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2">
+                <div class="w-3 h-3 rounded-full bg-cyan-500"></div>
+                <span class="font-bold tracking-wider text-sm text-slate-100 uppercase font-mono">MARK DOWN NOTES <span class="text-xs font-normal text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded bg-cyan-500/10">v2.4</span></span>
+            </div>
+            <span class="text-slate-600">|</span>
+            <span id="save-status" class="text-xs text-slate-400 flex items-center space-x-1">
+                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>Все изменения сохранены</span>
+            </span>
+        </div>
+
+        <!-- Global Action Buttons -->
+        <div class="flex items-center space-x-2">
+            <button id="btn-export-zip" title="Экспорт всех заметок в ZIP" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 transition border border-slate-700/60">
+                <i data-lucide="archive" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span>Экспорт ZIP</span>
+            </button>
+            <button id="btn-import-files" title="Импорт файлов MD или ZIP" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 transition border border-slate-700/60">
+                <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>Импорт</span>
+            </button>
+            <input type="file" id="import-file-input" class="hidden" accept=".md,.markdown,.zip" multiple>
+        </div>
+    </header>
+
+    <!-- Main Workspace Split -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <aside class="w-72 bg-sidebar border-r border-border flex flex-col shrink-0">
+            <!-- Sidebar Controls -->
+            <div class="p-3 space-y-2 border-b border-border">
+                <button id="btn-new-note" class="w-full flex items-center justify-center space-x-2 py-2 px-3 bg-brand-600 hover:bg-brand-700 text-white rounded-md text-sm font-medium transition shadow-sm">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Новая запись</span>
+                </button>
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-500"></i>
+                    <input type="text" id="search-input" placeholder="Поиск заметок..." class="w-full bg-slate-900 border border-slate-800 rounded-md pl-9 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition">
+                </div>
+            </div>
+
+            <!-- Category / Filter Tabs -->
+            <div class="flex border-b border-border text-xs px-2 py-1 text-slate-400 font-medium">
+                <button id="filter-all" class="flex-1 py-1.5 text-center rounded border-b-2 border-brand-500 text-slate-100 font-semibold">Все</button>
+                <button id="filter-fav" class="flex-1 py-1.5 text-center rounded border-b-2 border-transparent hover:text-slate-200">Избранное</button>
+            </div>
+
+            <!-- Notes List Container -->
+            <div id="notes-list" class="flex-1 overflow-y-auto divide-y divide-slate-800/40">
+                <!-- Dynamically rendered note items -->
+            </div>
+
+            <!-- Sidebar Footer Stats -->
+            <div class="p-3 border-t border-border bg-slate-950/40 flex justify-between items-center text-xs text-slate-500 font-mono">
+                <span id="notes-count">0 заметок</span>
+                <span id="storage-usage">0 KB</span>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-editor overflow-hidden">
+            
+            <!-- Note Header / Title Bar -->
+            <div class="px-6 py-4 border-b border-border bg-sidebar/50 flex items-center justify-between gap-4 shrink-0">
+                <div class="flex-1 flex items-center space-x-3">
+                    <button id="btn-toggle-fav" class="text-slate-500 hover:text-amber-400 transition" title="В избранное">
+                        <i data-lucide="star" class="w-5 h-5"></i>
+                    </button>
+                    <input type="text" id="note-title-input" placeholder="Название заметки..." class="w-full bg-transparent text-xl font-bold text-slate-100 focus:outline-none placeholder:text-slate-600 tracking-tight">
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button id="btn-export-single" title="Скачать заметку (.md или .zip с картинками)" class="p-2 rounded-md hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                    <button id="btn-delete-note" title="Удалить заметку" class="p-2 rounded-md hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formatting Toolbar -->
+            <div class="px-4 py-2 bg-slate-900/90 border-b border-border flex items-center flex-wrap gap-1 shrink-0 backdrop-blur">
+                <!-- Headings -->
+                <button class="toolbar-btn" data-action="h1" title="Заголовок 1 (H1)"><span class="font-bold text-xs">H1</span></button>
+                <button class="toolbar-btn" data-action="h2" title="Заголовок 2 (H2)"><span class="font-bold text-xs">H2</span></button>
+                <button class="toolbar-btn" data-action="h3" title="Заголовок 3 (H3)"><span class="font-bold text-xs">H3</span></button>
+
+                <div class="toolbar-divider"></div>
+
+                <!-- Text Styles -->
+                <button class="toolbar-btn" data-action="bold" title="Жирный (Ctrl+B)"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="italic" title="Курсив (Ctrl+I)"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="strikethrough" title="Зачеркнутый"><i data-lucide="strikethrough" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="code" title="Код в тексте"><i data-lucide="code" class="w-4 h-4"></i></button>
+
+                <div class="toolbar-divider"></div>
+
+                <!-- Lists & Tasks -->
+                <button class="toolbar-btn" data-action="ul" title="Маркированный список"><i data-lucide="list" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="ol" title="Нумерованный список"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="task" title="Чекбокс (Список задач)"><i data-lucide="check-square" class="w-4 h-4"></i></button>
+
+                <div class="toolbar-divider"></div>
+
+                <!-- Blocks & Inserts -->
+                <button class="toolbar-btn" data-action="blockquote" title="Цитата"><i data-lucide="quote" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="codeblock" title="Блок кода"><i data-lucide="terminal" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="link" title="Вставить ссылку"><i data-lucide="link" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="image" title="Вставить изображение"><i data-lucide="image" class="w-4 h-4"></i></button>
+                <button class="toolbar-btn" data-action="hr" title="Горизонтальная линия"><i data-lucide="minus" class="w-4 h-4"></i></button>
+
+                <div class="flex-1"></div>
+
+                <!-- Mode Switcher (WYSIWYG / Source MD) -->
+                <div class="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-xs">
+                    <button id="mode-wysiwyg" class="px-2.5 py-1 rounded-md bg-brand-600 text-white font-medium transition">Визуальный</button>
+                    <button id="mode-source" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 font-medium transition">Исходник MD</button>
+                </div>
+            </div>
+
+            <!-- Editable Body Area -->
+            <div class="flex-1 relative overflow-y-auto p-8 max-w-4xl w-full mx-auto">
+                <!-- Visual Contenteditable Container -->
+                <div id="editor-wysiwyg" contenteditable="true" spellcheck="true" class="editor-content w-full h-full focus:outline-none select-text" data-placeholder="Начните писать заметку здесь..."></div>
+                
+                <!-- Raw Markdown Textarea (Hidden by default) -->
+                <textarea id="editor-source" class="hidden w-full h-full bg-transparent font-mono text-slate-200 text-sm leading-relaxed border-none outline-none resize-none" placeholder="Введите Markdown текст..."></textarea>
+            </div>
+
+            <!-- Bottom Note Footer / Status Info -->
+            <div class="px-6 py-2 border-t border-border bg-sidebar/30 flex items-center justify-between text-xs text-slate-500 font-mono shrink-0">
+                <div class="flex items-center space-x-4">
+                    <span id="word-count">0 слов</span>
+                    <span id="char-count">0 символов</span>
+                </div>
+                <div id="last-updated-time">Обновлено: -</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Image Upload Modal -->
+    <div id="image-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-slate-100 font-semibold text-base flex items-center space-x-2">
+                    <i data-lucide="image" class="w-5 h-5 text-brand-500"></i>
+                    <span>Вставить изображение</span>
+                </h3>
+                <button class="modal-close text-slate-500 hover:text-slate-300"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Загрузить файл с ПК</label>
+                    <input type="file" id="img-file-input" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-brand-400 hover:file:bg-slate-700 cursor-pointer">
+                </div>
+                
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-800"></div>
+                    <span class="flex-shrink mx-2 text-xs text-slate-500">или по URL</span>
+                    <div class="flex-grow border-t border-slate-800"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">URL изображения</label>
+                    <input type="url" id="img-url-input" placeholder="https://example.com/image.png" class="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Alt текст (описание)</label>
+                    <input type="text" id="img-alt-input" placeholder="Описание изображения" class="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-2">
+                <button class="modal-close px-4 py-2 rounded-md bg-slate-800 text-slate-300 text-xs hover:bg-slate-700">Отмена</button>
+                <button id="btn-insert-image-confirm" class="px-4 py-2 rounded-md bg-brand-600 text-white text-xs font-medium hover:bg-brand-700">Вставить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Modal -->
+    <div id="link-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-slate-100 font-semibold text-base flex items-center space-x-2">
+                    <i data-lucide="link" class="w-5 h-5 text-brand-500"></i>
+                    <span>Вставить ссылку</span>
+                </h3>
+                <button class="modal-close text-slate-500 hover:text-slate-300"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Текст ссылки</label>
+                    <input type="text" id="link-text-input" placeholder="Текст для отображения" class="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">URL адрес</label>
+                    <input type="url" id="link-url-input" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-2">
+                <button class="modal-close px-4 py-2 rounded-md bg-slate-800 text-slate-300 text-xs hover:bg-slate-700">Отмена</button>
+                <button id="btn-insert-link-confirm" class="px-4 py-2 rounded-md bg-brand-600 text-white text-xs font-medium hover:bg-brand-700">Вставить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+    <script>
+        // --- DATA & APP STATE ---
+        const STORAGE_KEY = 'axiom_notes_v2_data';
+        let notes = [];
+        let activeNoteId = null;
+        let currentFilter = 'all'; // 'all' or 'fav'
+        let currentMode = 'wysiwyg'; // 'wysiwyg' or 'source'
+        let autoSaveTimer = null;
+
+        // Turndown Service Initialization
+        const turndownService = new TurndownService({
+            headingStyle: 'atx',
+            codeBlockStyle: 'fenced',
+            emDelimiter: '*'
+        });
+
+        // Use GFM plugin if available
+        if (window.turndownPluginGfm) {
+            turndownService.use(turndownPluginGfm.gfm);
+        }
+
+        // Custom Turndown rule for Checklists
+        turndownService.addRule('taskCheckboxes', {
+            filter: function (node) {
+                return node.type === 'checkbox' && node.parentNode.nodeName === 'LI';
+            },
+            replacement: function (content, node) {
+                return node.checked ? '[x] ' : '[ ] ';
+            }
+        });
+
+        // Custom Turndown rule for Images to keep relative paths
+        turndownService.addRule('localImages', {
+            filter: 'img',
+            replacement: function (content, node) {
+                const alt = node.getAttribute('alt') || '';
+                const relPath = node.getAttribute('data-filename');
+                const src = relPath || node.getAttribute('src') || '';
+                return `![${alt}](${src})`;
+            }
+        });
+
+        // Seed initial default notes if empty
+        const defaultNotes = [
+            {
+                id: 'demo-1',
+                title: 'Добро пожаловать в Mark Down Notes',
+                contentMarkdown: `# Добро пожаловать в Mark Down Notes\n\nЭто профессиональный редактор заметок с поддержкой **Markdown** и визуального форматирования без лишнего мусора.\n\n### Основные возможности:\n- [x] Автоматическое сохранение в памяти браузера (*LocalStorage*)\n- [x] Локальное хранение изображений и их экспорт в индивидуальные папки\n- [x] Поддержка заголовков H1, H2, H3, списков и цитат\n- [x] Экспорт всех заметок в ZIP-архив с папками и картинками\n- [ ] Импорт и вставка изображений с ПК (Ctrl+V / Drag&Drop)\n\n> "Простота — это крайняя степень утонченности." — Леонардо да Винчи\n\nПример кода в тексте:\n\`\`\`javascript\nfunction greet(name) {\n    console.log("Привет, " + name + "!");\n}\n\`\`\`\n\nУдачной работы!`,
+                images: {},
+                isFavorite: true,
+                createdAt: Date.now() - 3600000,
+                updatedAt: Date.now()
+            }
+        ];
+
+        // DOM Elements
+        const notesListEl = document.getElementById('notes-list');
+        const titleInput = document.getElementById('note-title-input');
+        const wysiwygEditor = document.getElementById('editor-wysiwyg');
+        const sourceEditor = document.getElementById('editor-source');
+        const searchInput = document.getElementById('search-input');
+        const saveStatusEl = document.getElementById('save-status');
+        const wordCountEl = document.getElementById('word-count');
+        const charCountEl = document.getElementById('char-count');
+        const lastUpdatedEl = document.getElementById('last-updated-time');
+        const notesCountEl = document.getElementById('notes-count');
+        const storageUsageEl = document.getElementById('storage-usage');
+
+        // Buttons
+        const btnNewNote = document.getElementById('btn-new-note');
+        const btnToggleFav = document.getElementById('btn-toggle-fav');
+        const btnDeleteNote = document.getElementById('btn-delete-note');
+        const btnExportSingle = document.getElementById('btn-export-single');
+        const btnExportZip = document.getElementById('btn-export-zip');
+        const btnImportFiles = document.getElementById('btn-import-files');
+        const importFileInput = document.getElementById('import-file-input');
+
+        const modeWysiwygBtn = document.getElementById('mode-wysiwyg');
+        const modeSourceBtn = document.getElementById('mode-source');
+
+        const filterAllBtn = document.getElementById('filter-all');
+        const filterFavBtn = document.getElementById('filter-fav');
+
+        // Modals
+        const imageModal = document.getElementById('image-modal');
+        const linkModal = document.getElementById('link-modal');
+
+        // --- CORE FUNCTIONS ---
+
+        // Load data from LocalStorage
+        function loadNotes() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    notes = JSON.parse(stored);
+                } else {
+                    notes = defaultNotes;
+                    saveNotesToStorage();
+                }
+            } catch (e) {
+                console.error("Ошибка загрузки из storage:", e);
+                notes = defaultNotes;
+            }
+
+            if (notes.length > 0) {
+                activeNoteId = notes[0].id;
+            } else {
+                createNewNote();
+            }
+
+            renderNotesList();
+            loadActiveNoteIntoEditor();
+            updateStorageMetrics();
+        }
+
+        function saveNotesToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+                updateStorageMetrics();
+                showSavedStatus();
+            } catch (e) {
+                showToast("Превышен лимит хранилища LocalStorage!", "error");
+            }
+        }
+
+        function updateStorageMetrics() {
+            const raw = JSON.stringify(notes);
+            const kb = (new Blob([raw]).size / 1024).toFixed(1);
+            storageUsageEl.textContent = `${kb} KB`;
+            notesCountEl.textContent = `${notes.length} ${getNoun(notes.length, 'заметка', 'заметки', 'заметок')}`;
+        }
+
+        function getNoun(number, one, two, five) {
+            let n = Math.abs(number);
+            n %= 100;
+            if (n >= 5 && n <= 20) return five;
+            n %= 10;
+            if (n === 1) return one;
+            if (n >= 2 && n <= 4) return two;
+            return five;
+        }
+
+        function getActiveNote() {
+            return notes.find(n => n.id === activeNoteId);
+        }
+
+        // Render Notes List in Sidebar
+        function renderNotesList() {
+            notesListEl.innerHTML = '';
+
+            const term = searchInput.value.toLowerCase().trim();
+            const filtered = notes.filter(note => {
+                const matchesSearch = note.title.toLowerCase().includes(term) || note.contentMarkdown.toLowerCase().includes(term);
+                const matchesFilter = currentFilter === 'fav' ? note.isFavorite : true;
+                return matchesSearch && matchesFilter;
+            });
+
+            if (filtered.length === 0) {
+                notesListEl.innerHTML = `
+                    <div class="p-6 text-center text-slate-500 text-xs">
+                        Заметок не найдено
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.sort((a, b) => b.updatedAt - a.updatedAt).forEach(note => {
+                const item = document.createElement('div');
+                item.className = `p-3 cursor-pointer transition border-b border-slate-800/40 relative group ${note.id === activeNoteId ? 'bg-active border-l-2 border-l-brand-500' : 'hover:bg-slate-900/50'}`;
+                
+                const cleanText = note.contentMarkdown.replace(/[#*`>_-]/g, '').slice(0, 70) || 'Пустая заметка...';
+                const dateStr = formatDate(note.updatedAt);
+
+                item.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <h4 class="text-xs font-semibold text-slate-200 truncate pr-4 ${note.id === activeNoteId ? 'text-brand-400' : ''}">${escapeHtml(note.title || 'Без названия')}</h4>
+                        ${note.isFavorite ? '<i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0"></i>' : ''}
+                    </div>
+                    <p class="text-[11px] text-slate-400 line-clamp-2 mt-1 font-normal leading-relaxed">${escapeHtml(cleanText)}</p>
+                    <div class="text-[10px] text-slate-500 mt-2 font-mono flex items-center justify-between">
+                        <span>${dateStr}</span>
+                        ${note.images && Object.keys(note.images).length > 0 ? `<span class="text-[9px] text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-1 rounded">${Object.keys(note.images).length} рис.</span>` : ''}
+                    </div>
+                `;
+
+                item.addEventListener('click', () => {
+                    if (activeNoteId !== note.id) {
+                        saveCurrentEditorContentToState();
+                        activeNoteId = note.id;
+                        renderNotesList();
+                        loadActiveNoteIntoEditor();
+                    }
+                });
+
+                notesListEl.appendChild(item);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Load Note into UI Editor
+        function loadActiveNoteIntoEditor() {
+            const note = getActiveNote();
+            if (!note) return;
+
+            if (!note.images) note.images = {};
+
+            titleInput.value = note.title;
+            
+            // Convert MD -> HTML for WYSIWYG
+            const rawHtml = marked.parse(note.contentMarkdown || '');
+            
+            // Post-process HTML for images & interactive checkboxes
+            wysiwygEditor.innerHTML = processHtmlForWYSIWYG(rawHtml, note);
+            sourceEditor.value = note.contentMarkdown;
+
+            updateFavButtonIcon(note.isFavorite);
+            updateWordAndCharCount();
+            lastUpdatedEl.textContent = `Обновлено: ${formatDate(note.updatedAt)}`;
+
+            attachCheckboxListeners();
+            updateToolbarActiveStates();
+        }
+
+        function processHtmlForWYSIWYG(html, note) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+
+            // Resolve local images from note state
+            if (note && note.images) {
+                const imgs = tempDiv.querySelectorAll('img');
+                imgs.forEach(img => {
+                    const src = img.getAttribute('src');
+                    if (src && note.images[src]) {
+                        img.setAttribute('data-filename', src);
+                        img.setAttribute('src', note.images[src]);
+                    }
+                });
+            }
+
+            // Transform [ ] and [x] lists into interactive inputs
+            const listItems = tempDiv.querySelectorAll('li');
+            listItems.forEach(li => {
+                const text = li.innerHTML;
+                if (text.startsWith('[ ] ') || text.startsWith('[x] ')) {
+                    const isChecked = text.startsWith('[x] ');
+                    const clean = text.replace(/^\[[ x]\]\s*/, '');
+                    li.classList.add('task-list-item');
+                    li.innerHTML = `<input type="checkbox" ${isChecked ? 'checked' : ''}> <span>${clean}</span>`;
+                    
+                    if (li.parentElement && li.parentElement.tagName === 'UL') {
+                        li.parentElement.classList.add('task-list');
+                    }
+                }
+            });
+
+            return tempDiv.innerHTML;
+        }
+
+        function attachCheckboxListeners() {
+            const checkboxes = wysiwygEditor.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.onchange = () => {
+                    triggerAutoSave();
+                };
+            });
+        }
+
+        function saveCurrentEditorContentToState() {
+            const note = getActiveNote();
+            if (!note) return;
+
+            note.title = titleInput.value.trim() || 'Без названия';
+            note.updatedAt = Date.now();
+
+            if (currentMode === 'wysiwyg') {
+                let markdown = turndownService.turndown(wysiwygEditor.innerHTML);
+                note.contentMarkdown = markdown;
+                sourceEditor.value = markdown;
+            } else {
+                note.contentMarkdown = sourceEditor.value;
+                wysiwygEditor.innerHTML = processHtmlForWYSIWYG(marked.parse(sourceEditor.value), note);
+            }
+
+            saveNotesToStorage();
+            lastUpdatedEl.textContent = `Обновлено: ${formatDate(note.updatedAt)}`;
+        }
+
+        function triggerAutoSave() {
+            showSavingStatus();
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                saveCurrentEditorContentToState();
+                renderNotesList();
+                updateWordAndCharCount();
+            }, 400);
+        }
+
+        function showSavingStatus() {
+            saveStatusEl.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-400 animate-spin"></i><span>Сохранение...</span>`;
+            lucide.createIcons();
+        }
+
+        function showSavedStatus() {
+            saveStatusEl.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Все изменения сохранены</span>`;
+            lucide.createIcons();
+        }
+
+        function createNewNote() {
+            const newNote = {
+                id: 'note-' + Date.now(),
+                title: 'Новая запись',
+                contentMarkdown: '# Новая запись\n\nНачните вводить текст...',
+                images: {},
+                isFavorite: false,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+
+            notes.unshift(newNote);
+            activeNoteId = newNote.id;
+            saveNotesToStorage();
+            renderNotesList();
+            loadActiveNoteIntoEditor();
+            titleInput.focus();
+            showToast("Новая запись создана");
+        }
+
+        function deleteCurrentNote() {
+            if (notes.length === 0) return;
+            
+            const note = getActiveNote();
+            if (!note) return;
+
+            notes = notes.filter(n => n.id !== activeNoteId);
+            saveNotesToStorage();
+
+            if (notes.length > 0) {
+                activeNoteId = notes[0].id;
+            } else {
+                createNewNote();
+            }
+
+            renderNotesList();
+            loadActiveNoteIntoEditor();
+            showToast("Заметка удалена");
+        }
+
+        function toggleFavorite() {
+            const note = getActiveNote();
+            if (!note) return;
+
+            note.isFavorite = !note.isFavorite;
+            updateFavButtonIcon(note.isFavorite);
+            saveNotesToStorage();
+            renderNotesList();
+        }
+
+        function updateFavButtonIcon(isFav) {
+            if (isFav) {
+                btnToggleFav.innerHTML = `<i data-lucide="star" class="w-5 h-5 text-amber-400 fill-amber-400"></i>`;
+            } else {
+                btnToggleFav.innerHTML = `<i data-lucide="star" class="w-5 h-5 text-slate-500"></i>`;
+            }
+            lucide.createIcons();
+        }
+
+        // --- FORMATTING TOOLBAR EXECUTION ---
+        function executeFormat(action) {
+            wysiwygEditor.focus();
+
+            switch (action) {
+                case 'h1':
+                    document.execCommand('formatBlock', false, '<h1>');
+                    break;
+                case 'h2':
+                    document.execCommand('formatBlock', false, '<h2>');
+                    break;
+                case 'h3':
+                    document.execCommand('formatBlock', false, '<h3>');
+                    break;
+                case 'bold':
+                    document.execCommand('bold');
+                    break;
+                case 'italic':
+                    document.execCommand('italic');
+                    break;
+                case 'strikethrough':
+                    document.execCommand('strikeThrough');
+                    break;
+                case 'code':
+                    toggleInlineCode();
+                    break;
+                case 'ul':
+                    document.execCommand('insertUnorderedList');
+                    break;
+                case 'ol':
+                    document.execCommand('insertOrderedList');
+                    break;
+                case 'task':
+                    insertTaskList();
+                    break;
+                case 'blockquote':
+                    document.execCommand('formatBlock', false, '<blockquote>');
+                    break;
+                case 'codeblock':
+                    insertCodeBlock();
+                    break;
+                case 'hr':
+                    document.execCommand('insertHorizontalRule');
+                    break;
+                case 'link':
+                    openLinkModal();
+                    break;
+                case 'image':
+                    openImageModal();
+                    break;
+            }
+
+            triggerAutoSave();
+            updateToolbarActiveStates();
+        }
+
+        function updateToolbarActiveStates() {
+            if (currentMode !== 'wysiwyg') return;
+            
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
+            
+            let node = selection.anchorNode;
+            if (!node) return;
+            if (node.nodeType === Node.TEXT_NODE) {
+                node = node.parentNode;
+            }
+            
+            if (!wysiwygEditor.contains(node)) return;
+
+            const toolbarBtns = document.querySelectorAll('.toolbar-btn[data-action]');
+            
+            let isBold = false, isItalic = false, isStrike = false, isUl = false, isOl = false;
+            try {
+                isBold = document.queryCommandState('bold');
+                isItalic = document.queryCommandState('italic');
+                isStrike = document.queryCommandState('strikeThrough');
+                isUl = document.queryCommandState('insertUnorderedList');
+                isOl = document.queryCommandState('insertOrderedList');
+            } catch(e) {}
+
+            const h1 = !!node.closest('h1');
+            const h2 = !!node.closest('h2');
+            const h3 = !!node.closest('h3');
+            const blockquote = !!node.closest('blockquote');
+            const isCodeBlock = !!node.closest('pre');
+            const isInlineCode = !!node.closest('code') && !isCodeBlock;
+            const isTask = !!node.closest('.task-list-item') || !!node.closest('.task-list');
+
+            toolbarBtns.forEach(btn => {
+                const action = btn.getAttribute('data-action');
+                let active = false;
+
+                switch(action) {
+                    case 'bold': active = isBold; break;
+                    case 'italic': active = isItalic; break;
+                    case 'strikethrough': active = isStrike; break;
+                    case 'h1': active = h1; break;
+                    case 'h2': active = h2; break;
+                    case 'h3': active = h3; break;
+                    case 'ul': active = isUl; break;
+                    case 'ol': active = isOl; break;
+                    case 'blockquote': active = blockquote; break;
+                    case 'code': active = isInlineCode; break;
+                    case 'codeblock': active = isCodeBlock; break;
+                    case 'task': active = isTask; break;
+                }
+
+                if (active) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function toggleInlineCode() {
+            const selection = window.getSelection();
+            if (!selection || !selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+            let node = selection.anchorNode;
+            if (node && node.nodeType === Node.TEXT_NODE) {
+                node = node.parentNode;
+            }
+
+            const codeNode = node ? node.closest('code') : null;
+
+            // Если курсор уже внутри <code> (и это не блок кода <pre>), выключаем режим (unwrap)
+            if (codeNode && !codeNode.closest('pre')) {
+                const parent = codeNode.parentNode;
+                const fragment = document.createDocumentFragment();
+                while (codeNode.firstChild) {
+                    fragment.appendChild(codeNode.firstChild);
+                }
+                parent.insertBefore(fragment, codeNode);
+                parent.removeChild(codeNode);
+                return;
+            }
+
+            // Включение режима кода в тексте
+            if (range.collapsed) {
+                // Если текст не выделен — создаем пустой <code> тег с маркером
+                const codeEl = document.createElement('code');
+                const zwsp = document.createTextNode('\u200B');
+                codeEl.appendChild(zwsp);
+                
+                range.insertNode(codeEl);
+
+                // Ставим курсор внутрь элемента <code>
+                const newRange = document.createRange();
+                newRange.setStart(zwsp, 1);
+                newRange.collapse(true);
+                
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            } else {
+                // Если выделен текст — оборачиваем выделение
+                const selectedText = range.toString();
+                const codeEl = document.createElement('code');
+                codeEl.textContent = selectedText;
+
+                range.deleteContents();
+                range.insertNode(codeEl);
+
+                const newRange = document.createRange();
+                newRange.selectNodeContents(codeEl);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
+        }
+
+        function insertTaskList() {
+            const html = `<ul class="task-list"><li class="task-list-item"><input type="checkbox"> <span>Новая задача</span></li></ul>`;
+            document.execCommand('insertHTML', false, html);
+            attachCheckboxListeners();
+        }
+
+        function insertCodeBlock() {
+            const html = `<pre><code>// Введите ваш код здесь\n</code></pre>`;
+            document.execCommand('insertHTML', false, html);
+        }
+
+        // Open Image Modal
+        function openImageModal() {
+            imageModal.classList.remove('hidden');
+            document.getElementById('img-url-input').value = '';
+            document.getElementById('img-alt-input').value = '';
+            document.getElementById('img-file-input').value = '';
+        }
+
+        function processAndInsertImageFile(file, altText = '') {
+            const note = getActiveNote();
+            if (!note) return;
+
+            if (!note.images) note.images = {};
+
+            const ext = file.name.split('.').pop() || 'png';
+            const filename = `images/img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+            const alt = altText || file.name.replace(/\.[^/.]+$/, '') || 'Изображение';
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const dataUrl = e.target.result;
+                note.images[filename] = dataUrl;
+
+                wysiwygEditor.focus();
+                const imgHtml = `<p><img src="${dataUrl}" data-filename="${filename}" alt="${escapeHtml(alt)}" /></p><p><br></p>`;
+                document.execCommand('insertHTML', false, imgHtml);
+                triggerAutoSave();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Insert Image Confirmation Button
+        document.getElementById('btn-insert-image-confirm').addEventListener('click', () => {
+            const fileInput = document.getElementById('img-file-input');
+            const urlInput = document.getElementById('img-url-input').value.trim();
+            const altInput = document.getElementById('img-alt-input').value.trim() || 'Изображение';
+
+            if (fileInput.files && fileInput.files[0]) {
+                processAndInsertImageFile(fileInput.files[0], altInput);
+                closeModals();
+            } else if (urlInput) {
+                insertExternalImageTag(urlInput, altInput);
+                closeModals();
+            } else {
+                showToast("Укажите ссылку или выберите файл", "error");
+            }
+        });
+
+        function insertExternalImageTag(src, alt) {
+            wysiwygEditor.focus();
+            const imgHtml = `<p><img src="${src}" alt="${escapeHtml(alt)}" /></p><p><br></p>`;
+            document.execCommand('insertHTML', false, imgHtml);
+            triggerAutoSave();
+        }
+
+        // Support image clipboard paste & drag-and-drop directly into editor
+        wysiwygEditor.addEventListener('paste', (e) => {
+            const items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    processAndInsertImageFile(file);
+                    break;
+                }
+            }
+        });
+
+        wysiwygEditor.addEventListener('dragover', (e) => e.preventDefault());
+        wysiwygEditor.addEventListener('drop', (e) => {
+            const files = e.dataTransfer && e.dataTransfer.files;
+            if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+                e.preventDefault();
+                processAndInsertImageFile(files[0]);
+            }
+        });
+
+        // Open Link Modal
+        function openLinkModal() {
+            linkModal.classList.remove('hidden');
+            document.getElementById('link-url-input').value = '';
+            document.getElementById('link-text-input').value = '';
+        }
+
+        document.getElementById('btn-insert-link-confirm').addEventListener('click', () => {
+            const url = document.getElementById('link-url-input').value.trim();
+            const text = document.getElementById('link-text-input').value.trim() || url;
+
+            if (url) {
+                wysiwygEditor.focus();
+                const linkHtml = `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(text)}</a>`;
+                document.execCommand('insertHTML', false, linkHtml);
+                closeModals();
+                triggerAutoSave();
+            } else {
+                showToast("Укажите URL адрес", "error");
+            }
+        });
+
+        function closeModals() {
+            imageModal.classList.add('hidden');
+            linkModal.classList.add('hidden');
+        }
+
+        document.querySelectorAll('.modal-close').forEach(btn => {
+            btn.addEventListener('click', closeModals);
+        });
+
+        // Export Single Note (.MD or ZIP with images if images exist)
+        async function exportSingleNote() {
+            const note = getActiveNote();
+            if (!note) return;
+
+            const hasImages = note.images && Object.keys(note.images).length > 0;
+
+            if (hasImages) {
+                showToast("Формирование ZIP для заметки...");
+                const zip = new JSZip();
+                const folderName = sanitizeFilename(note.title) || 'Note';
+                const noteFolder = zip.folder(folderName);
+
+                // Записываем .md файл заметки
+                const mdFilename = `${folderName}.md`;
+                noteFolder.file(mdFilename, note.contentMarkdown);
+
+                // Записываем картинки заметки в подпапку images/
+                Object.entries(note.images).forEach(([relPath, dataUrl]) => {
+                    if (dataUrl && dataUrl.startsWith('data:')) {
+                        const base64Data = dataUrl.split(',')[1];
+                        noteFolder.file(relPath, base64Data, { base64: true });
+                    }
+                });
+
+                const content = await zip.generateAsync({ type: "blob" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `${folderName}.zip`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+
+                showToast("Заметка с изображениями экспортирована в ZIP");
+            } else {
+                const blob = new Blob([note.contentMarkdown], { type: 'text/markdown;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${sanitizeFilename(note.title)}.md`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                showToast("Файл .md скачан");
+            }
+        }
+
+        async function exportAllToZip() {
+            if (notes.length === 0) {
+                showToast("Нет заметок для экспорта", "error");
+                return;
+            }
+
+            showToast("Формирование ZIP архива...");
+            const zip = new JSZip();
+
+            notes.forEach((note, index) => {
+                const folderName = sanitizeFilename(note.title) || `Note_${index + 1}`;
+                const noteFolder = zip.folder(folderName);
+
+                // Write markdown file inside the note folder
+                const mdFilename = `${folderName}.md`;
+                noteFolder.file(mdFilename, note.contentMarkdown);
+
+                // Write note images in images/ subfolder
+                if (note.images && Object.keys(note.images).length > 0) {
+                    Object.entries(note.images).forEach(([relPath, dataUrl]) => {
+                        if (dataUrl && dataUrl.startsWith('data:')) {
+                            const base64Data = dataUrl.split(',')[1];
+                            noteFolder.file(relPath, base64Data, { base64: true });
+                        }
+                    });
+                }
+            });
+
+            // Include system metadata
+            zip.file("metadata.json", JSON.stringify(notes, null, 2));
+
+            const content = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `MarkDown_Notes_Export_${new Date().toISOString().slice(0, 10)}.zip`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+
+            showToast("ZIP архив успешно создан!");
+        }
+
+        btnImportFiles.addEventListener('click', () => importFileInput.click());
+
+        importFileInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            for (let file of files) {
+                if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
+                    const text = await file.text();
+                    const title = file.name.replace(/\.[^/.]+$/, "");
+                    notes.unshift({
+                        id: 'note-' + Date.now() + Math.random().toString(36).substr(2, 4),
+                        title: title,
+                        contentMarkdown: text,
+                        images: {},
+                        isFavorite: false,
+                        createdAt: Date.now(),
+                        updatedAt: Date.now()
+                    });
+                } else if (file.name.endsWith('.zip')) {
+                    try {
+                        const zip = await JSZip.loadAsync(file);
+                        const folders = {};
+
+                        for (let relativePath of Object.keys(zip.files)) {
+                            const entry = zip.files[relativePath];
+                            if (entry.isDirectory) continue;
+
+                            const parts = relativePath.split('/');
+                            const folderName = parts.length > 1 ? parts[0] : 'Imported';
+
+                            if (!folders[folderName]) {
+                                folders[folderName] = { mdFiles: [], imageFiles: {} };
+                            }
+
+                            if (relativePath.endsWith('.md') || relativePath.endsWith('.markdown')) {
+                                const text = await entry.async("string");
+                                const title = parts[parts.length - 1].replace(/\.[^/.]+$/, "");
+                                folders[folderName].mdFiles.push({ title, text });
+                            } else if (/\.(png|jpe?g|gif|webp|svg)$/i.test(relativePath)) {
+                                const base64 = await entry.async("base64");
+                                const mime = getMimeType(relativePath);
+                                const dataUrl = `data:${mime};base64,${base64}`;
+                                const relInFolder = parts.slice(1).join('/');
+                                folders[folderName].imageFiles[relInFolder] = dataUrl;
+                            }
+                        }
+
+                        Object.entries(folders).forEach(([folderName, data]) => {
+                            data.mdFiles.forEach(md => {
+                                notes.unshift({
+                                    id: 'note-' + Date.now() + Math.random().toString(36).substr(2, 4),
+                                    title: md.title || folderName,
+                                    contentMarkdown: md.text,
+                                    images: data.imageFiles,
+                                    isFavorite: false,
+                                    createdAt: Date.now(),
+                                    updatedAt: Date.now()
+                                });
+                            });
+                        });
+                    } catch (err) {
+                        showToast("Ошибка при чтении ZIP архива", "error");
+                    }
+                }
+            }
+
+            saveNotesToStorage();
+            renderNotesList();
+            if (notes.length > 0) {
+                activeNoteId = notes[0].id;
+                loadActiveNoteIntoEditor();
+            }
+            showToast("Импорт завершен");
+            importFileInput.value = '';
+        });
+
+        function getMimeType(filename) {
+            if (filename.endsWith('.png')) return 'image/png';
+            if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) return 'image/jpeg';
+            if (filename.endsWith('.gif')) return 'image/gif';
+            if (filename.endsWith('.svg')) return 'image/svg+xml';
+            if (filename.endsWith('.webp')) return 'image/webp';
+            return 'image/png';
+        }
+
+        // Switch Editor Modes (WYSIWYG <-> Source)
+        modeWysiwygBtn.addEventListener('click', () => {
+            if (currentMode === 'wysiwyg') return;
+            currentMode = 'wysiwyg';
+            
+            modeWysiwygBtn.className = "px-2.5 py-1 rounded-md bg-brand-600 text-white font-medium transition";
+            modeSourceBtn.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 font-medium transition";
+
+            const note = getActiveNote();
+            wysiwygEditor.innerHTML = processHtmlForWYSIWYG(marked.parse(sourceEditor.value), note);
+            attachCheckboxListeners();
+            
+            sourceEditor.classList.add('hidden');
+            wysiwygEditor.classList.remove('hidden');
+            updateToolbarActiveStates();
+        });
+
+        modeSourceBtn.addEventListener('click', () => {
+            if (currentMode === 'source') return;
+            currentMode = 'source';
+
+            modeSourceBtn.className = "px-2.5 py-1 rounded-md bg-brand-600 text-white font-medium transition";
+            modeWysiwygBtn.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 font-medium transition";
+
+            sourceEditor.value = turndownService.turndown(wysiwygEditor.innerHTML);
+
+            wysiwygEditor.classList.add('hidden');
+            sourceEditor.classList.remove('hidden');
+        });
+
+        // Event Listeners for Input & Editing
+        titleInput.addEventListener('input', triggerAutoSave);
+        wysiwygEditor.addEventListener('input', triggerAutoSave);
+        sourceEditor.addEventListener('input', triggerAutoSave);
+
+        document.addEventListener('selectionchange', updateToolbarActiveStates);
+        wysiwygEditor.addEventListener('keyup', updateToolbarActiveStates);
+        wysiwygEditor.addEventListener('mouseup', updateToolbarActiveStates);
+        wysiwygEditor.addEventListener('focus', updateToolbarActiveStates);
+
+        // Toolbar Buttons Click Event Handler
+        document.querySelectorAll('.toolbar-btn[data-action]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const action = btn.getAttribute('data-action');
+                executeFormat(action);
+            });
+        });
+
+        // Global Action Listeners
+        btnNewNote.addEventListener('click', createNewNote);
+        btnDeleteNote.addEventListener('click', deleteCurrentNote);
+        btnToggleFav.addEventListener('click', toggleFavorite);
+        btnExportSingle.addEventListener('click', exportSingleNote);
+        btnExportZip.addEventListener('click', exportAllToZip);
+
+        // Search & Filter listeners
+        searchInput.addEventListener('input', renderNotesList);
+
+        filterAllBtn.addEventListener('click', () => {
+            currentFilter = 'all';
+            filterAllBtn.className = "flex-1 py-1.5 text-center rounded border-b-2 border-brand-500 text-slate-100 font-semibold";
+            filterFavBtn.className = "flex-1 py-1.5 text-center rounded border-b-2 border-transparent hover:text-slate-200";
+            renderNotesList();
+        });
+
+        filterFavBtn.addEventListener('click', () => {
+            currentFilter = 'fav';
+            filterFavBtn.className = "flex-1 py-1.5 text-center rounded border-b-2 border-brand-500 text-slate-100 font-semibold";
+            filterAllBtn.className = "flex-1 py-1.5 text-center rounded border-b-2 border-transparent hover:text-slate-200";
+            renderNotesList();
+        });
+
+        // --- HELPER UTILITIES ---
+        function updateWordAndCharCount() {
+            const text = wysiwygEditor.innerText || sourceEditor.value || '';
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+
+            wordCountEl.textContent = `${words} ${getNoun(words, 'слово', 'слова', 'слов')}`;
+            charCountEl.textContent = `${chars} ${getNoun(chars, 'символ', 'символа', 'символов')}`;
+        }
+
+        function formatDate(timestamp) {
+            const d = new Date(timestamp);
+            return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function sanitizeFilename(name) {
+            return name.replace(/[/\\?%*:|"<>]/g, '_').trim() || 'Untitled';
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-2.5 rounded-lg text-xs font-medium text-white shadow-xl flex items-center space-x-2 transition-all transform translate-y-2 opacity-0 pointer-events-auto ${type === 'error' ? 'bg-red-600' : 'bg-brand-600'}`;
+            
+            toast.innerHTML = `
+                <i data-lucide="${type === 'error' ? 'alert-circle' : 'info'}" class="w-4 h-4"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = function () {
+            lucide.createIcons();
+            loadNotes();
+        };
+    </script>
+</body>
+</html>
