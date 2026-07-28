@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои Микросервисы</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            dark: {
+              900: '#090d16',
+              800: '#111827',
+              700: '#1f2937',
+              600: '#374151'
+            },
+            accent: {
+              purple: '#8b5cf6',
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              pink: '#ec4899',
+              amber: '#f59e0b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1f2937;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+
+    .glass-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card:hover {
+      border-color: rgba(139, 92, 246, 0.4);
+      box-shadow: 0 12px 30px -10px rgba(139, 92, 246, 0.25);
+    }
+
+    .glass-nav {
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glow-bg {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      opacity: 0.15;
+    }
+  </style>
+</head>
+<body class="bg-dark-900 text-slate-100 font-sans min-h-full flex flex-col selection:bg-purple-500 selection:text-white relative overflow-x-hidden">
+
+  <!-- 
+  =============================================================================
+  ИНСТРУКЦИЯ ПО ДОБАВЛЕНИЮ НОВОГО МИКРОСЕРВИСА:
+  =============================================================================
+  
+  1. Разместите файл в папке проекта:
+     Создайте подпапку внутри директории pages/ и положите туда ваш .html файл сервиса:
+     
+     my-repository/
+     ├── index.html  (этот портал)
+     └── pages/
+         └── My_New_Service/
+             └── My_New_Service.html
+
+  2. Добавьте 1 блок в массив `microservices`:
+     Откройте этот файл index.html в редакторе кода и добавьте следующий объект 
+     в массив const microservices = [...] в секции <script> внизу файла:
+
+     {
+       id: "my-new-service",
+       title: "Мой Новый Сервис",
+       category: "Утилиты",
+       icon: "fa-solid fa-wand-magic-sparkles",
+       badgeColor: "from-purple-500 to-indigo-600",
+       description: "Краткое описание того, что делает ваш новый сервис.",
+       path: "./pages/My_New_Service/My_New_Service.html",
+       tags: ["Новый", "Утилита", "HTML"]
+     }
+  =============================================================================
+  -->
+
+  <div class="glow-bg w-[500px] h-[500px] bg-purple-600 top-[-100px] left-[-100px]"></div>
+  <div class="glow-bg w-[600px] h-[600px] bg-cyan-600 top-[200px] right-[-150px]"></div>
+  <div class="glow-bg w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] left-[20%]"></div>
+
+  <header class="glass-nav sticky top-0 z-40 px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 font-black text-xl">
+        <i class="fa-solid fa-cubes-stacked text-lg"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base lg:text-lg tracking-tight leading-tight text-white flex items-center gap-2">
+          Мои Микросервисы
+          <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">GitHub Pages</span>
+        </h1>
+      </div>
+    </div>
+  </header>
+
+  <section class="max-w-7xl mx-auto w-full px-4 lg:px-8 pt-6 pb-2">
+    <div class="flex items-center justify-start gap-2.5 overflow-x-auto pb-2 scrollbar-none" id="categoriesBar">
+      <!-- Category filters populated dynamically via JavaScript -->
+    </div>
+  </section>
+
+  <main class="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 flex-1">
+    <div id="servicesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Service Cards will be injected dynamically from JS data array -->
+    </div>
+
+    <!-- Empty category fallback -->
+    <div id="noResultsState" class="hidden py-16 text-center space-y-3">
+      <div class="w-16 h-16 rounded-2xl bg-dark-800 border border-slate-800 flex items-center justify-center text-slate-500 text-2xl mx-auto">
+        <i class="fa-solid fa-ghost"></i>
+      </div>
+      <h3 class="text-base font-bold text-slate-300">Сервисы не найдены</h3>
+      <p class="text-xs text-slate-500">Попробуйте выбрать другую категорию.</p>
+    </div>
+  </main>
+
+  <div id="previewModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-2 sm:p-4 lg:p-6">
+    <div class="bg-dark-800 border border-slate-700/80 rounded-2xl w-full h-full max-w-7xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header Bar -->
+      <div class="px-4 py-3 bg-dark-900 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-3">
+          <div id="modalIconContainer" class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-cube"></i>
+          </div>
+          <div>
+            <h3 id="modalTitle" class="text-sm font-bold text-white leading-tight">Предпросмотр сервиса</h3>
+            <p id="modalPath" class="text-[11px] font-mono text-slate-400">/pages/...</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <a id="modalExternalBtn" href="#" target="_blank" class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+            <span>Открыть в новой вкладке</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+          </a>
+          <button onclick="closePreviewModal()" class="w-8 h-8 rounded-lg bg-dark-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview iFrame -->
+      <div class="flex-1 bg-dark-900 relative">
+        <iframe id="previewIframe" src="" class="w-full h-full border-none" title="Live Microservice Preview"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-dark-800 border border-purple-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-medium transition-all duration-300 opacity-0 translate-y-10 pointer-events-none">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toastMessage">Ссылка скопирована!</span>
+  </div>
+
+  <script>
+    /**
+     * =========================================================================
+     * BLOCK DATA ARCHITECTURE (БЛОЧНАЯ СТРУКТУРА)
+     * Чтобы добавить новый микросервис, просто добавьте один блок { ... } ниже.
+     * =========================================================================
+     */
+    const microservices = [
+      {
+        id: "markdown-notes-v1",
+        title: "MarkDown Editor",
+        category: "Редакторы",
+        icon: "fa-solid fa-pen-nib",
+        badgeColor: "from-purple-500 to-indigo-600",
+        description: "Полнофункциональный редактор Markdown с живым предпросмотром, панелью форматирования, подсветкой кода и кастомными темами.",
+        path: "./pages/Mark_Down_Notes/Mark_Down_Notes.html",
+        tags: ["Markdown", "GFM", "Preview", "Editor"]
+      },
+      {
+        id: "json-geojson-editor",
+        title: "JSON / GeoJSON / TopoJSON Editor",
+        category: "Dev Tools",
+        icon: "fa-solid fa-code-compare",
+        badgeColor: "from-cyan-500 to-blue-600",
+        description: "Мощный онлайн-редактор JSON и векторных карт GeoJSON/TopoJSON на базе Ace Editor. Поддерживает RegEx поиск и форматирование.",
+        path: "./pages/JSON_GeoJSON_TopoJSON_Editor/JSON_GeoJSON_TopoJSON_Editor.html",
+        tags: ["JSON", "GeoJSON", "Ace Editor", "Maps"]
+      },
+      {
+        id: "vector-icon-generator",
+        title: "Vector File Icon Generator",
+        category: "Графика",
+        icon: "fa-solid fa-file-vector",
+        badgeColor: "from-emerald-500 to-teal-600",
+        description: "Конструктор качественных векторных иконок документов и файлов. Кастомизация срезов, цветов, надписей и каталог Material Symbols.",
+        path: "./pages/Vector_File_Icon_Generator/Vector_File_Icon_Generator.html",
+        tags: ["SVG", "Icons", "PNG Export", "Graphics"]
+      },
+      {
+        id: "markdown-notes-v2",
+        title: "Mark Down Notes Pro",
+        category: "Редакторы",
+        icon: "fa-solid fa-box-archive",
+        badgeColor: "from-amber-500 to-orange-600",
+        description: "Менеджер заметок с переключением между WYSIWYG визуальным видом и сырым Markdown. Поддержка вложения картинок и экспорта в ZIP.",
+        path: "./pages/Mark_Down_Notes_v2/Mark_Down_Notes_v2.html",
+        tags: ["Notes", "WYSIWYG", "ZIP Export", "Storage"]
+      },
+      {
+        id: "sqlite-browser-web",
+        title: "SQLite Browser Web",
+        category: "Базы данных",
+        icon: "fa-solid fa-database",
+        badgeColor: "from-pink-500 to-rose-600",
+        description: "Клиент реляционных баз данных SQLite прямо в браузере через WebAssembly. Выполнение SQL-запросов, просмотр таблиц и экспорт в CSV.",
+        path: "./pages/SQLite_Browser_Web/SQLite_Browser_Web.html",
+        tags: ["SQLite", "WASM", "SQL Client", "Database"]
+      },
+      {
+        id: "ledbasic-ide",
+        title: "LedBasic IDE",
+        category: "Dev Tools",
+        icon: "fa-solid fa-lightbulb",
+        badgeColor: "from-amber-500 to-red-600",
+        description: "IDE для разработки и эмуляции программ управления светодиодными лентами, кольцами и матрицами на языке LedBasic.",
+        path: "./pages/LedBasic_IDE/LedBasic_IDE.html",
+        tags: ["LED", "BASIC", "IDE", "Emulator"]
+      }
+    ];
+
+    // State management
+    let selectedCategory = "Все";
+
+    // Initialize application
+    document.addEventListener("DOMContentLoaded", () => {
+      renderCategoryFilters();
+      renderServices();
+    });
+
+    // Render filter pills
+    function renderCategoryFilters() {
+      const bar = document.getElementById("categoriesBar");
+      const categories = ["Все", ...new Set(microservices.map(s => s.category))];
+
+      bar.innerHTML = categories.map(cat => {
+        const active = selectedCategory === cat;
+        return `
+          <button onclick="setCategory('${cat}')" 
+                  class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border ${
+                    active 
+                      ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/25' 
+                      : 'bg-dark-800 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200'
+                  }">
+            ${cat === 'Все' ? '<i class="fa-solid fa-border-all mr-1.5"></i>' : ''} ${cat}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setCategory(category) {
+      selectedCategory = category;
+      renderCategoryFilters();
+      renderServices();
+    }
+
+    // Render service cards grid
+    function renderServices() {
+      const grid = document.getElementById("servicesGrid");
+      const noResults = document.getElementById("noResultsState");
+
+      const filtered = microservices.filter(item => {
+        return selectedCategory === "Все" || item.category === selectedCategory;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = "";
+        noResults.classList.remove("hidden");
+        return;
+      }
+
+      noResults.classList.add("hidden");
+
+      grid.innerHTML = filtered.map(item => `
+        <div class="glass-card rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 group">
+          
+          <div class="space-y-4">
+            <!-- Header Row -->
+            <div class="flex items-start justify-between gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr ${item.badgeColor} flex items-center justify-center text-white text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <i class="${item.icon}"></i>
+              </div>
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-dark-900/80 text-slate-300 border border-slate-700/60">
+                ${item.category}
+              </span>
+            </div>
+
+            <!-- Title & Description -->
+            <div>
+              <h3 class="text-lg font-bold text-white group-hover:text-purple-300 transition-colors flex items-center gap-2">
+                ${item.title}
+              </h3>
+              <p class="text-xs text-slate-400 mt-2 leading-relaxed line-clamp-3">
+                ${item.description}
+              </p>
+            </div>
+
+            <!-- Tags -->
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              ${item.tags.map(tag => `
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-dark-900/60 text-slate-400 border border-slate-800">
+                  #${tag}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Actions Footer -->
+          <div class="pt-6 mt-6 border-t border-slate-800/80 flex items-center justify-between gap-2">
+            
+            <button onclick="openPreviewModal('${item.title}', '${item.path}', '${item.icon}')" 
+                    class="px-3.5 py-2 rounded-xl bg-dark-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition" title="Быстрый просмотр в модальном окне">
+              <i class="fa-solid fa-eye text-cyan-400"></i>
+              <span>Предпросмотр</span>
+            </button>
+
+            <div class="flex items-center gap-2">
+              <button onclick="copyServiceLink('${item.path}')" class="w-9 h-9 rounded-xl bg-dark-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition" title="Копировать путь">
+                <i class="fa-solid fa-copy"></i>
+              </button>
+
+              <a href="${item.path}" target="_blank" 
+                 class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/20 flex items-center gap-1.5 transition active:scale-95">
+                <span>Перейти</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+      `).join('');
+    }
+
+    // Modal iframe Preview
+    function openPreviewModal(title, path, icon) {
+      document.getElementById("modalTitle").textContent = title;
+      document.getElementById("modalPath").textContent = path;
+      document.getElementById("previewIframe").src = path;
+      document.getElementById("modalExternalBtn").href = path;
+
+      const iconBox = document.getElementById("modalIconContainer");
+      iconBox.innerHTML = `<i class="${icon}"></i>`;
+
+      const modal = document.getElementById("previewModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closePreviewModal() {
+      const modal = document.getElementById("previewModal");
+      document.getElementById("previewIframe").src = "";
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    // Copy direct link to clipboard
+    function copyServiceLink(path) {
+      const fullUrl = window.location.origin + window.location.pathname.replace("index.html", "") + path.replace("./", "");
+      
+      const tempInp = document.createElement("input");
+      tempInp.value = fullUrl;
+      document.body.appendChild(tempInp);
+      tempInp.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInp);
+
+      showToast("Ссылка скопирована в буфер обмена!");
+    }
+
+    // Toast notification
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastMessage").textContent = msg;
+
+      toast.classList.remove("opacity-0", "translate-y-10", "pointer-events-none");
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-10", "pointer-events-none");
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
