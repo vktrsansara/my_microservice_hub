@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON / GeoJSON / TopoJSON Editor</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Ace Editor CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/mode-json.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/theme-one_dark.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ext-searchbox.js"></script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    
+    /* Vertical line between gutter and text area */
+    .ace_gutter {
+      border-right: 1px solid #334155 !important;
+    }
+
+    /* Search match highlighting */
+    .search-match-highlight {
+      position: absolute;
+      background-color: rgba(250, 204, 21, 0.35) !important;
+      border-radius: 2px;
+      z-index: 20;
+    }
+    .search-match-current {
+      position: absolute;
+      background-color: rgba(249, 115, 22, 0.7) !important;
+      border-radius: 2px;
+      z-index: 21;
+    }
+
+    /* Folding Widget styling */
+    .ace_fold-widget {
+      color: #94a3b8 !important;
+    }
+    .ace_fold-widget:hover {
+      color: #38bdf8 !important;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-hidden">
+
+  <!-- Top Navigation & Toolbar -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0 relative">
+    <!-- Stream Loading Progress Bar -->
+    <div id="streamProgressBarContainer" class="absolute top-0 left-0 w-full h-1 bg-slate-700 hidden">
+      <div id="streamProgressBar" class="h-full bg-indigo-500 transition-all duration-75 w-0"></div>
+    </div>
+
+    <!-- Left: Title & File Actions -->
+    <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-2">
+        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+        <span class="font-semibold text-lg tracking-tight text-white">JSON / GeoJSON / TopoJSON Editor</span>
+      </div>
+
+      <div class="h-5 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+
+      <!-- File Buttons -->
+      <div class="flex items-center space-x-2">
+        <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm px-3 py-1.5 rounded-md font-medium transition flex items-center space-x-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          <span id="openBtnText">Открыть</span>
+          <input type="file" id="fileInput" accept=".json,.geojson,.topojson,application/json" class="hidden" />
+        </label>
+
+        <button id="saveAsBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-3 py-1.5 rounded-md font-medium transition flex items-center space-x-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          <span>Сохранить как...</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Tools -->
+    <div class="flex items-center space-x-2">
+      <!-- Auto format -->
+      <button id="formatBtn" title="Автоформатирование JSON" class="bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm px-3 py-1.5 rounded-md font-medium transition flex items-center space-x-1.5">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+        </svg>
+        <span>Форматировать</span>
+      </button>
+
+      <!-- Search Toggle -->
+      <button id="toggleSearchBtn" title="Поиск (Ctrl+F)" class="bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm px-3 py-1.5 rounded-md font-medium transition flex items-center space-x-1.5">
+        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <span>Поиск</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Search Bar Panel (Filtered & RegEx) -->
+  <div id="searchPanel" class="hidden bg-slate-800/95 border-b border-slate-700 px-4 py-2 flex flex-wrap items-center justify-between gap-3 shrink-0 text-xs">
+    <div class="flex items-center flex-wrap gap-2 flex-1 max-w-4xl">
+      <!-- Search Input -->
+      <div class="relative flex-1 min-w-[200px]">
+        <input type="text" id="searchInput" placeholder="Поиск по файлу..." class="w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 pr-20" />
+        <span id="searchCount" class="absolute right-2 top-2 text-xs text-slate-400 font-mono">0 / 0</span>
+      </div>
+
+      <!-- Regex & Case Toggles -->
+      <div class="flex items-center space-x-1 bg-slate-900 border border-slate-700 p-1 rounded-md">
+        <button id="regexToggle" title="Регулярные выражения (RegEx)" class="px-2 py-1 rounded font-mono font-bold text-slate-400 hover:text-white transition">.*</button>
+        <button id="caseToggle" title="Учитывать регистр (Case Sensitive)" class="px-2 py-1 rounded font-mono font-bold text-slate-400 hover:text-white transition">Aa</button>
+      </div>
+
+      <!-- Key/Value Scope Filter Dropdown -->
+      <div class="flex items-center space-x-1">
+        <span class="text-slate-400 hidden sm:inline">Искать в:</span>
+        <select id="searchScopeSelect" class="bg-slate-900 border border-slate-600 text-slate-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+          <option value="all">Везде (Ключи и Значения)</option>
+          <option value="keys">Только Ключи ("key":)</option>
+          <option value="values">Только Значения (: "val")</option>
+        </select>
+      </div>
+
+      <!-- Nav buttons -->
+      <button id="findPrevBtn" title="Предыдущее совпадение (Shift+Enter)" class="bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded text-slate-200 font-bold">
+        &uarr;
+      </button>
+      <button id="findNextBtn" title="Следующее совпадение (Enter)" class="bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded text-slate-200 font-bold">
+        &darr;
+      </button>
+    </div>
+
+    <button id="closeSearchBtn" class="text-slate-400 hover:text-white px-2 py-1 transition">
+      &times; Закрыть
+    </button>
+  </div>
+
+  <!-- Editor Main Canvas -->
+  <main class="flex-1 relative w-full h-full">
+    <div id="editor" class="absolute inset-0 w-full h-full text-base"></div>
+  </main>
+
+  <!-- Bottom Status Bar -->
+  <footer class="bg-slate-800 border-t border-slate-700 px-4 py-1.5 text-xs flex items-center justify-between shrink-0">
+    <div id="statusMessage" class="flex items-center space-x-2 text-emerald-400 font-medium">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+      <span id="statusText">Синтаксис корректен</span>
+    </div>
+    <div class="text-slate-400 flex space-x-4 font-mono">
+      <span id="fileSizeBadge">Размер: 0 KB</span>
+      <span id="rootCountBadge">Ключей в корне: 0</span>
+      <span id="fileTypeBadge">Формат: JSON</span>
+      <span id="cursorPos">Стр: 1, Кол: 1</span>
+    </div>
+  </footer>
+
+  <!-- Save As Modal -->
+  <div id="saveModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl w-full max-w-md p-5 text-slate-100">
+      <h3 class="text-lg font-semibold mb-4 text-white">Сохранить файл как</h3>
+      
+      <div class="space-y-4">
+        <!-- File Name -->
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Имя файла</label>
+          <input type="text" id="modalFileName" value="document" class="w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <!-- Format Extension -->
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Формат файла</label>
+          <select id="modalFileFormat" class="w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+            <option value="json">.json (Standard JSON)</option>
+            <option value="geojson">.geojson (Geographic JSON)</option>
+            <option value="topojson">.topojson (Topology JSON)</option>
+          </select>
+        </div>
+
+        <!-- Formatting Option: Prettify vs Compress -->
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-2">Форматирование содержимого</label>
+          <div class="space-y-2">
+            <label class="flex items-center space-x-2.5 cursor-pointer">
+              <input type="radio" name="formatOption" value="pretty" checked class="text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900 border-slate-600" />
+              <span class="text-sm text-slate-200">Обычный текст (с отступами)</span>
+            </label>
+            <label class="flex items-center space-x-2.5 cursor-pointer">
+              <input type="radio" name="formatOption" value="minify" class="text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900 border-slate-600" />
+              <span class="text-sm text-slate-200">Сжатый JSON (минимизация без пробелов)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="mt-6 flex justify-end space-x-3">
+        <button id="cancelSaveBtn" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-md transition">
+          Отмена
+        </button>
+        <button id="confirmSaveBtn" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-md transition">
+          Скачать файл
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initial sample JSON data
+    const initialData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "name": "Пример локации",
+            "category": "Демонстрация",
+            "editable": true,
+            "description": null
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [37.6173, 55.7558]
+          }
+        }
+      ]
+    };
+
+    // Initialize Ace Editor with high-performance Virtual Scrolling setup
+    const editor = ace.edit("editor");
+    editor.setTheme("ace/theme/one_dark");
+    editor.session.setMode("ace/mode/json");
+    editor.setFontSize(14);
+    editor.setShowPrintMargin(false);
+
+    // Ace Virtual Scrolling & Code Folding Configuration
+    editor.setOption("showFoldWidgets", true);
+    editor.session.setFoldStyle("markbegin");
+    editor.setOption("scrollPastEnd", 0.5);
+    editor.setOption("animatedScroll", false); // Disables scrolling animation lag on huge files
+
+    // Set initial content
+    const initialFormatted = JSON.stringify(initialData, null, 2);
+    editor.setValue(initialFormatted, -1);
+
+    // DOM Elements
+    const fileInput = document.getElementById('fileInput');
+    const openBtnText = document.getElementById('openBtnText');
+    const saveAsBtn = document.getElementById('saveAsBtn');
+    const formatBtn = document.getElementById('formatBtn');
+    const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+    
+    const searchPanel = document.getElementById('searchPanel');
+    const searchInput = document.getElementById('searchInput');
+    const searchCount = document.getElementById('searchCount');
+    const regexToggle = document.getElementById('regexToggle');
+    const caseToggle = document.getElementById('caseToggle');
+    const searchScopeSelect = document.getElementById('searchScopeSelect');
+    const findNextBtn = document.getElementById('findNextBtn');
+    const findPrevBtn = document.getElementById('findPrevBtn');
+    const closeSearchBtn = document.getElementById('closeSearchBtn');
+
+    const statusMessage = document.getElementById('statusMessage');
+    const statusText = document.getElementById('statusText');
+    const cursorPos = document.getElementById('cursorPos');
+    const fileTypeBadge = document.getElementById('fileTypeBadge');
+    const rootCountBadge = document.getElementById('rootCountBadge');
+    const fileSizeBadge = document.getElementById('fileSizeBadge');
+
+    const streamProgressBarContainer = document.getElementById('streamProgressBarContainer');
+    const streamProgressBar = document.getElementById('streamProgressBar');
+
+    let currentLoadedFileName = 'data';
+    let isRegExActive = false;
+    let isCaseActive = false;
+
+    // Format Bytes helper
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 KB';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Non-blocking deferred Root Count update
+    let rootCountTimeout = null;
+    function updateRootCountDeferred() {
+      clearTimeout(rootCountTimeout);
+      rootCountTimeout = setTimeout(() => {
+        const code = editor.getValue();
+        fileSizeBadge.textContent = `Размер: ${formatBytes(new Blob([code]).size)}`;
+        
+        // For large documents (> 10MB), don't block UI with JSON.parse on every keypress
+        if (code.length > 8000000) {
+          rootCountBadge.textContent = "Ключей в корне: (Большой файл)";
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(code);
+          if (Array.isArray(parsed)) {
+            rootCountBadge.textContent = `Элементов в корне: ${parsed.length}`;
+          } else if (typeof parsed === 'object' && parsed !== null) {
+            rootCountBadge.textContent = `Ключей в корне: ${Object.keys(parsed).length}`;
+          } else {
+            rootCountBadge.textContent = "Элементов в корне: 1";
+          }
+        } catch (e) {
+          rootCountBadge.textContent = "Ключей в корне: —";
+        }
+      }, 300);
+    }
+
+    // Syntax Validation & Status Update
+    function validateJSON() {
+      const code = editor.getValue();
+      if (!code.trim()) {
+        setStatus(true, "Пустой документ");
+        updateRootCountDeferred();
+        return true;
+      }
+      
+      // If document is extremely large, disable background Ace web worker validation to keep scrolling smooth
+      if (code.length > 5000000) {
+        editor.session.setUseWorker(false);
+      } else {
+        editor.session.setUseWorker(true);
+      }
+
+      try {
+        JSON.parse(code);
+        setStatus(true, "Синтаксис корректен");
+        updateRootCountDeferred();
+        return true;
+      } catch (err) {
+        setStatus(false, "Ошибка синтаксиса: " + err.message);
+        updateRootCountDeferred();
+        return false;
+      }
+    }
+
+    function setStatus(isValid, msg) {
+      if (isValid) {
+        statusMessage.className = "flex items-center space-x-2 text-emerald-400 font-medium";
+        statusMessage.querySelector('span').className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
+        statusText.textContent = msg;
+      } else {
+        statusMessage.className = "flex items-center space-x-2 text-rose-400 font-medium";
+        statusMessage.querySelector('span').className = "w-2 h-2 rounded-full bg-rose-400 inline-block";
+        statusText.textContent = msg;
+      }
+    }
+
+    // Chunked Streaming File Reader (Reads massive JSON files in non-blocking chunks)
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const chunkSize = 2 * 1024 * 1024; // 2MB chunks
+      const fileSize = file.size;
+      let offset = 0;
+      let fileChunks = [];
+
+      openBtnText.textContent = "Загрузка...";
+      streamProgressBarContainer.classList.remove('hidden');
+      streamProgressBar.style.width = '0%';
+
+      // Save file metadata
+      const nameParts = file.name.split('.');
+      if (nameParts.length > 1) {
+        const ext = nameParts.pop().toLowerCase();
+        currentLoadedFileName = nameParts.join('.');
+        if (['json', 'geojson', 'topojson'].includes(ext)) {
+          modalFileFormat.value = ext;
+          fileTypeBadge.textContent = `Формат: ${ext.toUpperCase()}`;
+        }
+      } else {
+        currentLoadedFileName = file.name;
+      }
+
+      // Read chunk iteratively without freezing UI
+      function readNextChunk() {
+        const reader = new FileReader();
+        const blob = file.slice(offset, offset + chunkSize);
+
+        reader.onload = (evt) => {
+          fileChunks.push(evt.target.result);
+          offset += chunkSize;
+
+          const progress = Math.min(100, Math.round((offset / fileSize) * 100));
+          streamProgressBar.style.width = progress + '%';
+
+          if (offset < fileSize) {
+            // Yield control to UI main thread
+            setTimeout(readNextChunk, 0);
+          } else {
+            // Finished streaming read
+            const fullText = fileChunks.join('');
+            
+            // Adjust worker for huge files to ensure no freeze
+            if (fileSize > 5 * 1024 * 1024) {
+              editor.session.setUseWorker(false);
+            } else {
+              editor.session.setUseWorker(true);
+            }
+
+            editor.setValue(fullText, -1);
+            fileChunks = [];
+            openBtnText.textContent = "Открыть";
+            streamProgressBarContainer.classList.add('hidden');
+            validateJSON();
+          }
+        };
+
+        reader.readAsText(blob);
+      }
+
+      readNextChunk();
+      fileInput.value = '';
+    });
+
+    // Advanced Search Engine using Ace Search with Key/Value Filters & RegEx
+    const AceSearch = ace.require('ace/search').Search;
+    const searchInstance = new AceSearch();
+
+    let searchMarkers = [];
+    let activeMarker = null;
+    let currentRanges = [];
+    let currentMatchIndex = -1;
+
+    function clearSearch() {
+      searchMarkers.forEach(id => editor.session.removeMarker(id));
+      searchMarkers = [];
+      if (activeMarker) {
+        editor.session.removeMarker(activeMarker);
+        activeMarker = null;
+      }
+      currentRanges = [];
+      currentMatchIndex = -1;
+      searchCount.textContent = "0 / 0";
+    }
+
+    function performSearch() {
+      clearSearch();
+      let query = searchInput.value;
+      if (!query) return;
+
+      const scope = searchScopeSelect.value; // 'all', 'keys', 'values'
+
+      // Handle Key / Value filtering logic
+      let processedNeedle = query;
+      let isRegexSearch = isRegExActive;
+
+      if (scope === 'keys') {
+        // Match string before colon e.g. "key":
+        if (isRegexSearch) {
+          processedNeedle = `"${query}"\\s*:`;
+        } else {
+          // Escape special regex chars for plain search within key format
+          const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          processedNeedle = `"${escaped}"\\s*:`;
+          isRegexSearch = true;
+        }
+      } else if (scope === 'values') {
+        // Match string after colon e.g. : "value" or : 123
+        if (isRegexSearch) {
+          processedNeedle = `:\\s*"?${query}"?`;
+        } else {
+          const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          processedNeedle = `:\\s*"?${escaped}"?`;
+          isRegexSearch = true;
+        }
+      }
+
+      try {
+        searchInstance.setOptions({
+          needle: processedNeedle,
+          caseSensitive: isCaseActive,
+          wholeWord: false,
+          regExp: isRegexSearch,
+          wrap: true
+        });
+
+        currentRanges = searchInstance.findAll(editor.session);
+
+        if (currentRanges.length > 0) {
+          currentRanges.forEach(range => {
+            const mId = editor.session.addMarker(range, "search-match-highlight", "text");
+            searchMarkers.push(mId);
+          });
+          
+          currentMatchIndex = 0;
+          highlightCurrentMatch();
+        } else {
+          searchCount.textContent = "0 совпадений";
+        }
+      } catch (e) {
+        searchCount.textContent = "Некорректный RegEx";
+      }
+    }
+
+    function highlightCurrentMatch() {
+      if (activeMarker) {
+        editor.session.removeMarker(activeMarker);
+        activeMarker = null;
+      }
+
+      if (currentRanges.length === 0 || currentMatchIndex < 0) return;
+
+      const targetRange = currentRanges[currentMatchIndex];
+      
+      // Highlight active match with current orange marker
+      activeMarker = editor.session.addMarker(targetRange, "search-match-current", "text");
+      
+      // Update count badge
+      searchCount.textContent = `${currentMatchIndex + 1} / ${currentRanges.length}`;
+
+      // Scroll and navigate to match in virtual scroll space
+      editor.scrollToLine(targetRange.start.row, true, true, function() {});
+      editor.selection.setRange(targetRange);
+    }
+
+    function findNext() {
+      if (currentRanges.length === 0) return;
+      currentMatchIndex = (currentMatchIndex + 1) % currentRanges.length;
+      highlightCurrentMatch();
+    }
+
+    function findPrev() {
+      if (currentRanges.length === 0) return;
+      currentMatchIndex = (currentMatchIndex - 1 + currentRanges.length) % currentRanges.length;
+      highlightCurrentMatch();
+    }
+
+    // Toggle Buttons for Search (RegEx & Case)
+    regexToggle.addEventListener('click', () => {
+      isRegExActive = !isRegExActive;
+      regexToggle.classList.toggle('bg-indigo-600', isRegExActive);
+      regexToggle.classList.toggle('text-white', isRegExActive);
+      regexToggle.classList.toggle('text-slate-400', !isRegExActive);
+      performSearch();
+    });
+
+    caseToggle.addEventListener('click', () => {
+      isCaseActive = !isCaseActive;
+      caseToggle.classList.toggle('bg-indigo-600', isCaseActive);
+      caseToggle.classList.toggle('text-white', isCaseActive);
+      caseToggle.classList.toggle('text-slate-400', !isCaseActive);
+      performSearch();
+    });
+
+    searchScopeSelect.addEventListener('change', performSearch);
+
+    // Search Panel Events
+    toggleSearchBtn.addEventListener('click', () => {
+      searchPanel.classList.toggle('hidden');
+      if (!searchPanel.classList.contains('hidden')) {
+        searchInput.focus();
+        performSearch();
+      } else {
+        clearSearch();
+      }
+    });
+
+    closeSearchBtn.addEventListener('click', () => {
+      searchPanel.classList.add('hidden');
+      clearSearch();
+    });
+
+    searchInput.addEventListener('input', performSearch);
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          findPrev();
+        } else {
+          findNext();
+        }
+      }
+    });
+
+    findNextBtn.addEventListener('click', findNext);
+    findPrevBtn.addEventListener('click', findPrev);
+
+    // Keyboard shortcut for search (Ctrl+F / Cmd+F)
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        searchPanel.classList.remove('hidden');
+        searchInput.focus();
+        searchInput.select();
+        performSearch();
+      }
+    });
+
+    // Editor Event Listeners
+    editor.session.on('change', () => {
+      validateJSON();
+      if (!searchPanel.classList.contains('hidden') && searchInput.value) {
+        performSearch();
+      }
+    });
+
+    editor.selection.on('changeCursor', () => {
+      const pos = editor.getCursorPosition();
+      cursorPos.textContent = `Стр: ${pos.row + 1}, Кол: ${pos.column + 1}`;
+    });
+
+    // Auto-Formatting JSON
+    formatBtn.addEventListener('click', () => {
+      const code = editor.getValue();
+      try {
+        const parsed = JSON.parse(code);
+        const formatted = JSON.stringify(parsed, null, 2);
+
+        if (code === formatted) {
+          setStatus(true, "Синтаксис корректен (Уже отформатировано)");
+          return;
+        }
+
+        const cursorPos = editor.getCursorPosition();
+        const scrollTop = editor.session.getScrollTop();
+        const scrollLeft = editor.session.getScrollLeft();
+
+        editor.setValue(formatted, -1);
+
+        editor.navigateTo(cursorPos.row, cursorPos.column);
+        editor.session.setScrollTop(scrollTop);
+        editor.session.setScrollLeft(scrollLeft);
+
+        setStatus(true, "Синтаксис корректен (Отформатировано)");
+      } catch (e) {
+        setStatus(false, "Невозможно отформатировать: Ошибка в структуре JSON");
+      }
+    });
+
+    // Save As Modal Management
+    saveAsBtn.addEventListener('click', () => {
+      modalFileName.value = currentLoadedFileName || 'document';
+      saveModal.classList.remove('hidden');
+      saveModal.classList.add('flex');
+    });
+
+    cancelSaveBtn.addEventListener('click', () => {
+      saveModal.classList.add('hidden');
+      saveModal.classList.remove('flex');
+    });
+
+    // Download File Action
+    confirmSaveBtn.addEventListener('click', () => {
+      let content = editor.getValue();
+      const filename = modalFileName.value.trim() || 'document';
+      const extension = modalFileFormat.value;
+      const selectedFormatOption = document.querySelector('input[name="formatOption"]:checked').value;
+
+      if (selectedFormatOption === 'minify') {
+        try {
+          const parsed = JSON.parse(content);
+          content = JSON.stringify(parsed);
+        } catch (e) {
+          setStatus(false, "Ошибка при сжатии: исходный JSON содержит ошибки");
+          saveModal.classList.add('hidden');
+          saveModal.classList.remove('flex');
+          return;
+        }
+      } else if (selectedFormatOption === 'pretty') {
+        try {
+          const parsed = JSON.parse(content);
+          content = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+          // Keep raw content if parse error
+        }
+      }
+
+      const blob = new Blob([content], { type: 'application/json;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      fileTypeBadge.textContent = `Формат: ${extension.toUpperCase()}`;
+
+      saveModal.classList.add('hidden');
+      saveModal.classList.remove('flex');
+    });
+
+    // Initial status check
+    validateJSON();
+  </script>
+</body>
+</html>
