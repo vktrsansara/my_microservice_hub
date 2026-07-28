@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>LedBasic IDE</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- TOPBAR -->
+      <div id="tb">
+        <div id="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24">
+            <rect width="24" height="24" rx="4" fill="#001520" />
+            <circle cx="5" cy="12" r="2.8" fill="#ff3344" />
+            <circle cx="5" cy="12" r="1.1" fill="#ff9999" />
+            <circle cx="12" cy="12" r="2.8" fill="#ffd060" />
+            <circle cx="12" cy="12" r="1.1" fill="#fff8cc" />
+            <circle cx="19" cy="12" r="2.8" fill="#3dff7a" />
+            <circle cx="19" cy="12" r="1.1" fill="#aaffcc" />
+          </svg>
+          <div>
+            <div id="lt">LEDBASIC</div>
+            <div id="ls">IDE v3</div>
+          </div>
+        </div>
+
+        <div class="tgrp">
+          <button class="btn" onclick="newFile()">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6L9 2z"
+              />
+              <path d="M9 2v4h4" /></svg
+            >Новый
+          </button>
+          <button class="btn" onclick="openFile()">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                d="M2 5a1 1 0 011-1h3.5l1.5 1.5H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1V5z"
+              /></svg
+            >Открыть
+          </button>
+          <button class="btn ac" onclick="doSave()">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M13 13H3V3h7l3 3v7z" />
+              <path d="M5 13V8h6v5" />
+              <path d="M6 3h4v3H6z" /></svg
+            >Сохранить
+          </button>
+        </div>
+
+        <div class="tgrp">
+          <div class="tbdrop" id="dd-examples">
+            <button class="btn" onclick="toggleExamples(event)">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 3h12M2 6h8M2 9h10M2 12h6"/>
+              </svg>Примеры<span class="ddcaret">▾</span>
+            </button>
+            <div class="ddmenu" id="dd-examples-menu"></div>
+          </div>
+          <button class="btn" onclick="showReference()">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="6"/>
+              <path d="M8 7v5M8 5v1"/>
+            </svg>Справочник
+          </button>
+        </div>
+
+        <div class="tgrp">
+          <button class="btn" onclick="showExport()">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M8 2v8M5 7l3 3 3-3M3 11v2h10v-2" /></svg
+            >Экспорт
+          </button>
+          <button class="btn" onclick="showAutoNum()">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M3 4h2M3 8h5M3 12h7" />
+              <path d="M11 3l2 9" /></svg
+            >Нумерация
+          </button>
+          <button class="btn" onclick="doFormat()">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M2 4h12M4 8h8M6 12h4" /></svg
+            >Формат
+          </button>
+        </div>
+
+        <div class="tgrp">
+          <button class="btn" onclick="showSettings()">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <circle cx="8" cy="8" r="2.5" />
+              <path
+                d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"
+              /></svg
+            >Настройки
+          </button>
+        </div>
+
+        <div class="tsp"></div>
+        <div id="stbar">
+          <span id="st-pos">Стр 1, Кол 1</span>
+          <span id="st-ln">0 строк</span>
+          <span id="st-err">⚠ <span id="st-ec">0</span> ош.</span>
+          <span id="st-spd" style="color: var(--cy)">×1.0</span>
+        </div>
+
+        <button id="runbtn" onclick="toggleRun()">
+          <svg id="ricon" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4 3l10 5-10 5V3z" />
+          </svg>
+          <span id="rtxt">ЗАПУСК</span>
+        </button>
+      </div>
+
+      <!-- MAIN -->
+      <div id="main">
+        <!-- SIDEBAR / EMULATOR -->
+        <div id="sb">
+          <div class="sbt">Эмулятор</div>
+          <div id="ectrls">
+            <div class="er" id="row-px">
+              <label>Пикселей</label
+              ><input
+                type="number"
+                id="ec"
+                value="32"
+                min="1"
+                max="1024"
+                oninput="resizeEmu()"
+              />
+            </div>
+            <div class="er">
+              <label>Форма</label>
+              <select id="eshape" oninput="onShapeChange()">
+                <option value="strip">Полоса</option>
+                <option value="ring">Кольцо</option>
+                <option value="matrix">Матрица</option>
+              </select>
+            </div>
+            <div class="er" id="row-mw" style="display: none">
+              <label>Ширина</label
+              ><input
+                type="number"
+                id="emw"
+                value="16"
+                min="1"
+                max="64"
+                oninput="resizeEmu()"
+              />
+            </div>
+            <div class="er" id="row-mh" style="display: none">
+              <label>Высота</label
+              ><input
+                type="number"
+                id="emh"
+                value="16"
+                min="1"
+                max="64"
+                oninput="resizeEmu()"
+              />
+            </div>
+            <div class="er">
+              <label>Масштаб</label
+              ><input
+                type="number"
+                id="escale"
+                value="11"
+                min="4"
+                max="32"
+                oninput="resizeEmu()"
+              />
+            </div>
+          </div>
+          <div class="sbt">Предпросмотр</div>
+          <div id="ewrap">
+            <canvas id="ecanv"></canvas>
+            <div id="efps">— FPS</div>
+          </div>
+        </div>
+
+        <div id="rv"></div>
+
+        <!-- EDITOR AREA -->
+        <div id="ea">
+          <div id="etabs">
+            <div class="etab on">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6L9 2z"
+                />
+              </svg>
+              <input
+                id="tabname"
+                type="text"
+                value="untitled.bas"
+                spellcheck="false"
+                autocomplete="off"
+                title="Имя файла"
+              />
+              <span id="tab-dirty" style="display: none">●</span>
+            </div>
+          </div>
+
+          <!-- THE EDITOR -->
+          <div id="edwrap">
+            <div id="gutter"><div id="gutter-inner"></div></div>
+            <div id="escroll" onscroll="onScroll()">
+              <div id="einner">
+                <div id="curhl"></div>
+                <div id="hlayer"></div>
+                <textarea
+                  id="ta"
+                  spellcheck="false"
+                  autocomplete="off"
+                  autocorrect="off"
+                  oninput="onInput()"
+                  onkeydown="onKeyDown(event)"
+                  onclick="onSelChange()"
+                  onkeyup="onSelChange()"
+                  onselect="onSelChange()"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div id="rh"></div>
+
+          <div id="bot">
+            <div id="btabs">
+              <div class="btt on" id="bt-con" onclick="showBot('con')">
+                Консоль
+              </div>
+              <div class="btt" id="bt-by" onclick="showBot('by')">Байткод</div>
+              <div class="btt" id="bt-var" onclick="showBot('var')">
+                Переменные
+              </div>
+            </div>
+            <div id="bpan">
+              <div id="con"></div>
+              <div id="byv"></div>
+              <div id="varv"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="ov" onclick="if (event.target === this) hideModal();">
+      <div class="modal" id="m-set" style="display: none">
+        <div class="mhd">
+          <span>⚙ Настройки</span
+          ><button class="mxb" onclick="hideModal()">×</button>
+        </div>
+        <div class="mbdy">
+          <div class="sh">Редактор</div>
+          <div class="sr">
+            <label>Размер шрифта (px)</label
+            ><input type="number" id="cfg-fs" value="12" min="8" max="24" />
+          </div>
+          <div class="sr">
+            <label>Размер таба</label
+            ><input type="number" id="cfg-tab" value="2" min="1" max="8" />
+          </div>
+          <div class="sr">
+            <label>Автодополнение</label
+            ><input type="checkbox" id="cfg-ac" checked />
+          </div>
+          <div class="sh">Нумерация строк</div>
+          <div class="sr">
+            <label>Начало</label
+            ><input type="number" id="cfg-ns" value="10" min="1" />
+          </div>
+          <div class="sr">
+            <label>Шаг</label
+            ><input type="number" id="cfg-nst" value="10" min="1" />
+          </div>
+          <div class="sh">Эмулятор</div>
+          <div class="sr">
+            <label>setSpeed (%)</label
+            ><input type="number" id="cfg-spd" value="100" min="1" max="1000" />
+          </div>
+          <div class="sr">
+            <label>Яркость</label
+            ><input type="number" id="cfg-br" value="255" min="1" max="255" />
+          </div>
+        </div>
+        <div class="mft">
+          <button class="mb" onclick="hideModal()">Отмена</button>
+          <button class="mb p" onclick="applySettings()">Применить</button>
+        </div>
+      </div>
+
+      <div
+        class="modal"
+        id="m-exp"
+        style="display: none; min-width: 500px; max-width: 600px"
+      >
+        <div class="mhd">
+          <span>↓ Экспорт</span
+          ><button class="mxb" onclick="hideModal()">×</button>
+        </div>
+        <div class="mbdy">
+          <div class="ets">
+            <div class="et on" id="et-cs" onclick="setExpMode('cs')">
+              const char*
+            </div>
+            <div class="et" id="et-pm" onclick="setExpMode('pm')">PROGMEM</div>
+            <div class="et" id="et-bas" onclick="setExpMode('bas')">.bas</div>
+            <div class="et" id="et-bin" onclick="setExpMode('bin')">
+              .bin hex
+            </div>
+          </div>
+          <div id="expc"></div>
+        </div>
+        <div class="mft">
+          <button class="mb" onclick="dlExport()">⬇ Скачать</button>
+          <button class="mb p" onclick="copyExport()">⧉ Копировать</button>
+        </div>
+      </div>
+
+      <div class="modal" id="m-an" style="display: none; min-width: 360px">
+        <div class="mhd">
+          <span># Нумерация</span
+          ><button class="mxb" onclick="hideModal()">×</button>
+        </div>
+        <div class="mbdy">
+          <div class="sr">
+            <label>Начало</label
+            ><input type="number" id="an-s" value="10" min="1" />
+          </div>
+          <div class="sr">
+            <label>Шаг</label
+            ><input type="number" id="an-st" value="10" min="1" />
+          </div>
+          <div class="sr">
+            <label>Перенумеровать существующие</label
+            ><input type="checkbox" id="an-re" checked />
+          </div>
+        </div>
+        <div class="mft">
+          <button class="mb" onclick="hideModal()">Отмена</button>
+          <button class="mb p" onclick="applyAutoNum()">Применить</button>
+        </div>
+      </div>
+
+      <div class="modal" id="m-cfm" style="display: none; min-width: 340px">
+        <div class="mhd">
+          <span id="cfm-title">Подтверждение</span
+          ><button class="mxb" onclick="hideModal()">×</button>
+        </div>
+        <div class="mbdy">
+          <p id="cfm-msg" style="font-size: 12px; color: var(--t2)"></p>
+        </div>
+        <div class="mft">
+          <button class="mb" onclick="hideModal()">Отмена</button>
+          <button class="mb p" id="cfm-ok">OK</button>
+        </div>
+      </div>
+      <!-- СПРАВОЧНИК -->
+      <div class="modal modal-wide" id="m-ref" style="display:none">
+        <div class="mhd">
+          <span>📖 Справочник LedBasic</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <div class="ref-tabs" id="ref-tabs"></div>
+            <button class="mxb" onclick="hideModal()">×</button>
+          </div>
+        </div>
+        <div id="ref-body" style="overflow:auto;padding:0;flex:1;min-height:0"></div>
+      </div>
+
+    </div><!-- /ov -->
+    <div id="acp"></div>
+    <div id="notif"></div>
+    <input
+      type="file"
+      id="fopen"
+      accept=".bas,.bin"
+      style="display: none"
+      onchange="onFileOpen(event)"
+    />
+    <script src="reference.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
